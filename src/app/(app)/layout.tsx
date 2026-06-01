@@ -12,7 +12,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="flex min-w-0 flex-1 flex-col">
         <AppHeader
           workspaceName={session.workspace.name}
-          displayName={session.member.display_name}
+          displayName={session.member.name}
           email={session.email}
           role={session.member.role}
         />

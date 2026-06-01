@@ -47,7 +47,7 @@ export default async function SettingsPage() {
           <CardDescription>로그인 계정 정보입니다.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Row label="이름" value={session.member.display_name} />
+          <Row label="이름" value={session.member.name} />
           <Separator />
           <Row label="이메일" value={session.email ?? "—"} />
         </CardContent>

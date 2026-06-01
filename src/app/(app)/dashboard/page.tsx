@@ -20,7 +20,7 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={`안녕하세요, ${session.member.display_name}님`}
+        title={`안녕하세요, ${session.member.name}님`}
         description={`${session.workspace.name} 업무 현황입니다.`}
       />
 

@@ -52,23 +52,42 @@ supabase/              # config.toml + migrations/
 
 ## 2. 도메인 용어 (Domain glossary)
 
-| 용어 | 코드 식별자 | 설명 |
+| 용어 | 코드 식별자 (테이블) | 설명 |
 |------|-------------|------|
-| 사무소 | `workspace` | 최상위 테넌트. 하나의 세무사무소. |
-| 직원 | `member` | workspace에 속한 사용자. `role`: `owner`(대표) / `staff`(직원). |
-| 거래처 | `client` | 사무소가 수임한 사업자(고객사). |
-| 수임 | engagement | 거래처와의 업무 계약/수임 관계. |
-| 신고 | filing | 부가가치세·종합소득세·법인세 등 세무 신고. |
-| 마감 | closing | 기장/결산 마감 작업. |
+| 사무소 | `workspaces` | 최상위 테넌트. `plan`(free/team/pro), `trial_ends_at`, `billing_customer_id`. |
+| 직원 | `members` | workspace 사용자. `role`: owner/staff, `status`: active/inactive, `invited_email`(초대). |
+| 거래처 | `clients` | 사무소가 수임한 사업자(고객사). |
+| 담당 배정 | `client_assignments` | 직원 ↔ 거래처 N:N. staff 쓰기 권한의 기준. |
+| 신고 | `filing_tasks` | 부가세·종소세·법인세 등 신고/마감 업무. `status`, `docs_status`. |
+| 제출서류 체크리스트 | `expected_documents` | 신고별 필요 서류 + 수취 여부(누락 체크). |
+| 서류 | `documents` | 수집 파일. `source`(upload/email/kakao/codef), AI 분류 메타. |
+| 분류 학습 이력 | `classification_history` | ★RAG 학습 루프. 확정/교정된 분류 누적. **워크스페이스 외부로 절대 노출 금지.** |
+| AI 사용량 | `ai_usage` | ★마진 보호. 워크스페이스·월별 토큰/원가 집계. owner 읽기 전용. |
+| 리마인더 | `reminders` | 거래처 대상 발송 기록(email/inapp/kakao/sms). |
+| 인앱 알림 | `notifications` | 직원별 알림. 본인 것만 조회/수정. |
+| 감사 로그 | `audit_logs` | 행위 추적. owner 읽기 전용, 기록은 서비스 역할. |
+| 결제 이벤트 | `billing_events` | 결제 웹훅 원본. owner 읽기 전용. |
 | 과세유형 | `tax_type` | `general`(일반), `simplified`(간이), `exempt`(면세), `corporate`(법인). |
+
+모든 테이블은 `id uuid pk`, `workspace_id`, `created_at`, `updated_at`를 가진다.
 
 ## 3. 핵심 원칙 (반드시 준수)
 
 1. **모든 테넌트 테이블은 `workspace_id` + RLS.**
    - 사용자 데이터를 담는 모든 테이블은 `workspace_id uuid not null` 컬럼을 갖는다.
-   - 반드시 RLS를 켜고, 멤버십 기반 정책을 건다. 재귀 방지를 위해
-     `public.is_workspace_member(workspace_id)` / `public.workspace_role(workspace_id)`
-     (SECURITY DEFINER) 헬퍼를 사용한다. **클라이언트 측 필터링에 의존하지 말 것.**
+   - 반드시 RLS를 켜고, 멤버십 기반 정책을 건다. 재귀 방지를 위해 아래의
+     SECURITY DEFINER 헬퍼(검색경로 고정)를 사용한다. **클라이언트 측 필터링에 의존 금지.**
+     - `current_workspace_id()` / `current_member_id()` / `current_member()` — 로그인 사용자(`auth.uid()`)의 활성 member 기준.
+     - `is_owner()` — owner 여부.
+     - `is_assigned_to_client(client_id)` — staff 쓰기 범위(담당 배정) 판정.
+     - `can_write_task(task_id)` — owner/담당자/담당 거래처 기준 신고 업무 쓰기 판정.
+   - **표준 정책 형태**:
+     - 읽기: `workspace_id = current_workspace_id()` (workspace 전원 읽기).
+     - 쓰기(owner): `... and is_owner()`.
+     - 쓰기(staff 범위): `... and (is_owner() or is_assigned_to_client(client_id))`.
+     - owner 전용 조회(`ai_usage`/`audit_logs`/`billing_events`): `... and is_owner()`, 기록(insert)은 `service_role` 전용(RLS 우회).
+     - `classification_history`: `select`은 `workspace_id = current_workspace_id()`로 **반드시 자기 워크스페이스로 한정**.
+     - `notifications`: 본인(`member_id = current_member_id()`) 것만.
 
 2. **외부 연동은 기능 플래그(feature flag)로 격리한다.**
    - 홈택스/스크래핑/결제 등 외부 서비스 연동은 `src/lib/env.ts`의 `features`에서
@@ -112,13 +131,25 @@ supabase/              # config.toml + migrations/
 | `pnpm db:start` / `pnpm db:stop` | 로컬 Supabase 시작/정지 |
 | `pnpm db:reset` | 마이그레이션 재적용(로컬 DB 초기화) |
 | `pnpm db:diff` | 스키마 변경 → 새 마이그레이션 생성 |
-| `pnpm db:types` | DB → TypeScript 타입 재생성 |
+| `pnpm db:types` | DB → TypeScript 타입 재생성 (로컬 Supabase 필요) |
+| `pnpm db:test` | RLS pgTAP 테스트 실행 (`supabase test db`, Docker) |
+| `pnpm test:rls:local` | Docker 없이 로컬 Postgres+pgTAP로 RLS 테스트 |
 
-## 6. 새 도메인 테이블 추가 체크리스트
+## 6. 데이터베이스 & RLS 테스트
 
-1. `supabase/migrations/NNNN_*.sql` 생성: `workspace_id` 컬럼 + FK + 인덱스.
-2. RLS 활성화 + `is_workspace_member` / `workspace_role` 기반 정책.
-3. `updated_at` 트리거(`set_updated_at`) 연결.
+- 스키마: `supabase/migrations/0001_core.sql` … `0005_comms_audit.sql` (순서대로 적용).
+- 시드: `supabase/seed.sql` (데모 워크스페이스 1 + 거래처 3 + 데모 로그인).
+- RLS 테스트: `supabase/tests/rls_isolation_test.sql` (pgTAP).
+  - 워크스페이스 간 데이터 비노출, staff 쓰기 범위 제한, `classification_history`
+    타 워크스페이스 비조회, owner 전용 조회, `service_role` 우회 등을 검증.
+- Docker 없이 검증할 때는 `scripts/pg-local/supabase_env.sql`(auth 환경 셰임) +
+  `scripts/test-rls-local.sh`를 사용한다.
+
+## 7. 새 도메인 테이블 추가 체크리스트
+
+1. `supabase/migrations/NNNN_*.sql` 생성: `id`, `workspace_id` + FK + 인덱스, `created_at/updated_at`.
+2. RLS 활성화 + 위 헬퍼(`current_workspace_id()`/`is_owner()`/`is_assigned_to_client()` 등) 기반 정책.
+3. `updated_at` 트리거(`set_updated_at`) 연결 + 역할별 `grant`.
 4. `pnpm db:reset` 후 `pnpm db:types`로 타입 재생성.
-5. zod 스키마 + `action()` 래퍼로 server action 작성.
-6. 서버 컴포넌트에서 읽기, 빈 상태/로딩/에러 처리.
+5. `supabase/tests/`에 격리 테스트 추가 → `pnpm db:test`(또는 `test:rls:local`)로 확인.
+6. zod 스키마 + `action()` 래퍼로 server action 작성, 서버 컴포넌트 읽기 + 빈/로딩/에러 처리.
