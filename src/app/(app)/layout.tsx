@@ -1,10 +1,12 @@
 import { AppHeader } from "@/components/app-shell/app-header";
 import { AppSidebar } from "@/components/app-shell/app-sidebar";
 import { requireSession } from "@/lib/auth/session";
+import { getMyNotifications } from "@/lib/reminders/queries";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   // Redirects to /login when unauthenticated (defence-in-depth alongside middleware).
   const session = await requireSession();
+  const notifications = await getMyNotifications();
 
   return (
     <div className="flex min-h-dvh bg-background">
@@ -15,6 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           displayName={session.member.name}
           email={session.email}
           role={session.member.role}
+          notifications={notifications}
         />
         <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
       </div>

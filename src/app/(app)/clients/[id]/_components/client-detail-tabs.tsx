@@ -14,6 +14,7 @@ import { CLIENT_STATUS_LABELS, TAX_TYPE_LABELS } from "@/lib/clients/constants";
 import type { WorkspaceMember } from "@/lib/clients/queries";
 import type { ClientDocument, TaskOption } from "@/lib/documents/queries";
 import type { ScheduleTask } from "@/lib/filings/queries";
+import { templateLabel } from "@/lib/messaging/templates";
 import type { Client, ReminderChannel, ReminderStatus } from "@/types/database.types";
 
 type ReminderLite = {
@@ -125,7 +126,7 @@ export function ClientDetailTabs({
             {reminders.map((r) => (
               <li key={r.id} className="flex items-center justify-between gap-3 p-3">
                 <div>
-                  <p className="text-sm font-medium">{r.template_key}</p>
+                  <p className="text-sm font-medium">{templateLabel(r.template_key)}</p>
                   <p className="text-xs text-muted-foreground">
                     {REMINDER_CHANNEL[r.channel]} · {fmtDate(r.sent_at ?? r.created_at)}
                   </p>

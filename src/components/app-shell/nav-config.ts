@@ -1,4 +1,5 @@
 import {
+  Bell,
   Building2,
   CalendarCheck,
   CalendarDays,
@@ -43,6 +44,12 @@ export const navItems: NavItem[] = [
     href: "/calendar",
     icon: CalendarDays,
     description: "전사 신고 마감 캘린더",
+  },
+  {
+    title: "리마인더",
+    href: "/reminders",
+    icon: Bell,
+    description: "자료 미제출 독촉/알림",
   },
   {
     title: "마감",

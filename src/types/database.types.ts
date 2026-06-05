@@ -634,6 +634,33 @@ export type Database = {
         };
         Relationships: [WorkspaceFk<"billing_events_workspace_id_fkey">];
       };
+      reminder_settings: {
+        Row: {
+          workspace_id: string;
+          auto_send: boolean;
+          channels: string[];
+          offsets: number[];
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          workspace_id: string;
+          auto_send?: boolean;
+          channels?: string[];
+          offsets?: number[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          workspace_id?: string;
+          auto_send?: boolean;
+          channels?: string[];
+          offsets?: number[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [WorkspaceFk<"reminder_settings_workspace_id_fkey">];
+      };
     };
     Views: Record<never, never>;
     Functions: {
