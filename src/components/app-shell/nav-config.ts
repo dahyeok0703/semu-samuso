@@ -6,8 +6,10 @@ import {
   FileSignature,
   FileText,
   LayoutDashboard,
+  ScrollText,
   Settings,
   Sparkles,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 
@@ -67,10 +69,22 @@ export const navItems: NavItem[] = [
 
 export const secondaryNavItems: NavItem[] = [
   {
+    title: "팀",
+    href: "/team",
+    icon: Users,
+    description: "직원·초대·담당 배정 (대표 전용)",
+  },
+  {
     title: "AI 인사이트",
     href: "/admin",
     icon: Sparkles,
     description: "분류 정확도·AI 사용량 (대표 전용)",
+  },
+  {
+    title: "감사 로그",
+    href: "/audit",
+    icon: ScrollText,
+    description: "변경 이력 (대표 전용)",
   },
   {
     title: "설정",

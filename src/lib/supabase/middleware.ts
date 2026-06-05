@@ -5,7 +5,14 @@ import { env } from "@/lib/env";
 import type { Database } from "@/types/database.types";
 
 /** Route groups that do not require an authenticated session. */
-const PUBLIC_PREFIXES = ["/login", "/signup", "/reset-password", "/update-password", "/auth"];
+const PUBLIC_PREFIXES = [
+  "/login",
+  "/signup",
+  "/reset-password",
+  "/update-password",
+  "/auth",
+  "/invite",
+];
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));

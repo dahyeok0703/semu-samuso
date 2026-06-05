@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { action, ActionException } from "@/lib/actions/safe-action";
 import type { DocType } from "@/lib/ai/doc-types";
 import { logAudit } from "@/lib/audit";
-import { getSession, type SessionContext } from "@/lib/auth/session";
+import { requireActor as getActor } from "@/lib/auth/guards";
 import { getClientAssigneeIds } from "@/lib/clients/queries";
 import { deriveDocsStatus } from "@/lib/filings/constants";
 import {
@@ -16,15 +16,10 @@ import {
 } from "@/lib/documents/schemas";
 import { DOCUMENTS_BUCKET } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
+import type { SessionContext } from "@/lib/auth/session";
 import type { Json } from "@/types/database.types";
 
 type SupabaseServer = Awaited<ReturnType<typeof createClient>>;
-
-async function getActor(): Promise<SessionContext> {
-  const session = await getSession();
-  if (!session) throw new ActionException("UNAUTHORIZED", "로그인이 필요합니다.");
-  return session;
-}
 
 /** Owner, or a member assigned to the client, may write that client's documents. */
 async function assertCanWriteClient(session: SessionContext, clientId: string): Promise<void> {

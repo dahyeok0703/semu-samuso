@@ -25,6 +25,7 @@ export type DocumentSource = "upload" | "email" | "kakao" | "codef";
 export type DocumentStatus = "pending_review" | "confirmed";
 export type ReminderChannel = "email" | "inapp" | "kakao" | "sms";
 export type ReminderStatus = "queued" | "sent" | "failed";
+export type InvitationStatus = "pending" | "accepted" | "revoked";
 
 type WorkspaceFk<Name extends string> = {
   foreignKeyName: Name;
@@ -660,6 +661,45 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [WorkspaceFk<"reminder_settings_workspace_id_fkey">];
+      };
+      invitations: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          email: string;
+          role: MemberRole;
+          token: string;
+          status: InvitationStatus;
+          invited_by_member_id: string | null;
+          expires_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          email: string;
+          role?: MemberRole;
+          token: string;
+          status?: InvitationStatus;
+          invited_by_member_id?: string | null;
+          expires_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          workspace_id?: string;
+          email?: string;
+          role?: MemberRole;
+          token?: string;
+          status?: InvitationStatus;
+          invited_by_member_id?: string | null;
+          expires_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [WorkspaceFk<"invitations_workspace_id_fkey">];
       };
     };
     Views: Record<never, never>;

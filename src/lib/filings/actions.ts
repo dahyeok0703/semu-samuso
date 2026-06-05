@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { action, ActionException } from "@/lib/actions/safe-action";
 import { logAudit } from "@/lib/audit";
-import { getSession, type SessionContext } from "@/lib/auth/session";
+import { requireActor as getActor } from "@/lib/auth/guards";
 import { getClientAssigneeIds } from "@/lib/clients/queries";
 import { generateFilingTasks, toClientForRules } from "@/lib/filing-rules/engine";
 import { deriveDocsStatus } from "@/lib/filings/constants";
@@ -17,12 +17,6 @@ import {
 } from "@/lib/filings/schemas";
 import { createClient } from "@/lib/supabase/server";
 import type { Client } from "@/types/database.types";
-
-async function getActor(): Promise<SessionContext> {
-  const session = await getSession();
-  if (!session) throw new ActionException("UNAUTHORIZED", "로그인이 필요합니다.");
-  return session;
-}
 
 type SupabaseServer = Awaited<ReturnType<typeof createClient>>;
 

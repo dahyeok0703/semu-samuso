@@ -198,6 +198,27 @@ export async function sendViaChannel(
   }
 }
 
+/**
+ * Generic transactional email (e.g. team invites). Mirrors the reminder email
+ * channel's graceful behaviour: logs instead of sending when SMTP is unset.
+ */
+export async function sendRawEmail(
+  to: string,
+  subject: string,
+  text: string,
+): Promise<{ ok: boolean; note: string | null; error: string | null }> {
+  if (!features.email) {
+    console.info(`[email:dev] → ${to} | ${subject}`);
+    return { ok: true, note: "개발 모드 — SMTP 미설정(발송 로그로 대체)", error: null };
+  }
+  try {
+    await getTransport().sendMail({ from: env.SMTP_FROM, to, subject, text });
+    return { ok: true, note: null, error: null };
+  } catch (e) {
+    return { ok: false, note: null, error: errMessage(e) };
+  }
+}
+
 /** Channels currently usable given configuration (for UI gating). */
 export function availableChannels(): Channel[] {
   const list: Channel[] = ["inapp", "email"];

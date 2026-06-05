@@ -49,8 +49,21 @@ as $$
   )::uuid;
 $$;
 
+-- auth.email() — mirrors Supabase's helper (used by invitation RLS policies).
+create or replace function auth.email()
+returns text
+language sql
+stable
+as $$
+  select coalesce(
+    nullif(current_setting('request.jwt.claim.email', true), ''),
+    nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'email'
+  );
+$$;
+
 grant usage on schema auth to anon, authenticated, service_role;
 grant execute on function auth.uid() to anon, authenticated, service_role;
+grant execute on function auth.email() to anon, authenticated, service_role;
 grant select on auth.users to authenticated, service_role;
 
 -- storage shim (Supabase provides schema "storage"; recreate the minimum the

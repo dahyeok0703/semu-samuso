@@ -14,20 +14,9 @@ import {
   updateClientStatusSchema,
   type ClientFormValues,
 } from "@/lib/clients/schemas";
-import { getSession, type SessionContext } from "@/lib/auth/session";
+import { assertOwner, requireActor as getActor } from "@/lib/auth/guards";
+import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-
-async function getActor(): Promise<SessionContext> {
-  const session = await getSession();
-  if (!session) throw new ActionException("UNAUTHORIZED", "로그인이 필요합니다.");
-  return session;
-}
-
-function assertOwner(session: SessionContext): void {
-  if (session.member.role !== "owner") {
-    throw new ActionException("FORBIDDEN", "대표(owner)만 가능한 작업입니다.");
-  }
-}
 
 const blankToNull = (value: string): string | null => {
   const t = value.trim();

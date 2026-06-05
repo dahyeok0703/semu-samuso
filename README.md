@@ -159,7 +159,11 @@ scripts           Docker 없이 RLS 테스트하는 로컬 PG 하니스
 - ✅ RLS 격리 pgTAP 테스트(30 단언) — staff 쓰기 범위·학습 이력 격리까지 검증
 - ✅ 데모 시드(워크스페이스 1 + 거래처 3 + 운영 데이터 + 로그인 계정)
 - ✅ 환경변수 검증, 에러 바운더리/not-found/로딩 스켈레톤/토스트
-- ✅ 통일된 server action 래퍼(zod + try/catch + `{ ok, data, error }`)
+- ✅ 통일된 server action 래퍼(zod + try/catch + `{ ok, data, error }`) + 권한 가드 유틸
+  (`lib/auth/guards`: requireOwner/requireClientWrite)
+- ✅ **팀 협업**: 이메일 직원 초대(SMTP) → 수락 시 같은 workspace에 staff 합류(RLS 기반,
+  서비스롤 불필요·escalation 차단), 멤버 관리(`/team`: 역할 변경·비활성화·초대 재발송/취소),
+  거래처 일괄 재배정(owner), 감사 로그 뷰어(`/audit`: 멤버/액션/기간 필터 + 페이지네이션)
 - ✅ **거래처(client) 관리**: 목록(검색·필터·정렬·서버 페이지네이션), 등록/수정
   (사업자번호 형식·체크섬 검증 + 중복 경고), 상세(탭: 신고/자료/독촉/정보),
   담당직원 배정(owner 변경·staff 조회·멀티), 엑셀 일괄 등록(템플릿→검증→미리보기→

@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 
 import { action, ActionException } from "@/lib/actions/safe-action";
 import { logAudit } from "@/lib/audit";
-import { getSession, type SessionContext } from "@/lib/auth/session";
+import { requireActor as getActor } from "@/lib/auth/guards";
+import { getSession } from "@/lib/auth/session";
 import {
   markNotificationSchema,
   sendRemindersSchema,
@@ -12,12 +13,6 @@ import {
 } from "@/lib/reminders/schemas";
 import { getStaffForClient, loadReminderTask, sendRemindersForTask } from "@/lib/reminders/service";
 import { createClient } from "@/lib/supabase/server";
-
-async function getActor(): Promise<SessionContext> {
-  const session = await getSession();
-  if (!session) throw new ActionException("UNAUTHORIZED", "로그인이 필요합니다.");
-  return session;
-}
 
 // ---------------------------------------------------------------------------
 // Send reminders for selected tasks over chosen channels (bulk or individual).
