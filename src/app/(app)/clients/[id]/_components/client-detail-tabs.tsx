@@ -1,8 +1,9 @@
 "use client";
 
-import { CalendarClock, FileText, Send } from "lucide-react";
+import { FileText, Send } from "lucide-react";
 
 import { AssignmentManager } from "@/app/(app)/clients/[id]/_components/assignment-manager";
+import { FilingSchedule } from "@/app/(app)/clients/[id]/_components/filing-schedule";
 import { EmptyState } from "@/components/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -10,24 +11,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatBizRegNo } from "@/lib/clients/biz-reg-no";
 import { CLIENT_STATUS_LABELS, TAX_TYPE_LABELS } from "@/lib/clients/constants";
 import type { WorkspaceMember } from "@/lib/clients/queries";
+import type { ScheduleTask } from "@/lib/filings/queries";
 import type {
   Client,
-  DocsStatus,
   DocumentSource,
   DocumentStatus,
-  FilingStatus,
   ReminderChannel,
   ReminderStatus,
 } from "@/types/database.types";
 
-type FilingTaskLite = {
-  id: string;
-  filing_type: string;
-  period_label: string;
-  due_date: string | null;
-  status: FilingStatus;
-  docs_status: DocsStatus;
-};
 type DocumentLite = {
   id: string;
   doc_type: string | null;
@@ -44,17 +36,6 @@ type ReminderLite = {
   created_at: string;
 };
 
-const FILING_STATUS: Record<FilingStatus, string> = {
-  pending: "대기",
-  docs_received: "자료 수취",
-  filed: "신고 완료",
-  done: "완료",
-};
-const DOCS_STATUS: Record<DocsStatus, string> = {
-  missing: "미수취",
-  partial: "일부",
-  complete: "완료",
-};
 const DOC_SOURCE: Record<DocumentSource, string> = {
   upload: "업로드",
   email: "이메일",
@@ -96,7 +77,8 @@ export function ClientDetailTabs({
   members,
   assigneeIds,
   canEditAssignments,
-  filingTasks,
+  canWriteFilings,
+  schedule,
   documents,
   reminders,
 }: {
@@ -104,7 +86,8 @@ export function ClientDetailTabs({
   members: WorkspaceMember[];
   assigneeIds: string[];
   canEditAssignments: boolean;
-  filingTasks: FilingTaskLite[];
+  canWriteFilings: boolean;
+  schedule: ScheduleTask[];
   documents: DocumentLite[];
   reminders: ReminderLite[];
 }) {
@@ -119,30 +102,12 @@ export function ClientDetailTabs({
 
       {/* 신고 일정 */}
       <TabsContent value="filings">
-        {filingTasks.length === 0 ? (
-          <EmptyState
-            icon={CalendarClock}
-            title="등록된 신고 일정이 없습니다"
-            description="부가세·종소세 등 신고 업무는 다음 단계(신고 관리)에서 이 거래처와 연동됩니다."
-          />
-        ) : (
-          <ul className="divide-y rounded-xl border">
-            {filingTasks.map((t) => (
-              <li key={t.id} className="flex items-center justify-between gap-3 p-3">
-                <div>
-                  <p className="text-sm font-medium">{t.period_label}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {t.filing_type} · 마감 {fmtDate(t.due_date)}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="muted">자료 {DOCS_STATUS[t.docs_status]}</Badge>
-                  <Badge variant="outline">{FILING_STATUS[t.status]}</Badge>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+        <FilingSchedule
+          clientId={client.id}
+          schedule={schedule}
+          canWrite={canWriteFilings}
+          taxTypeSet={client.tax_type !== null}
+        />
       </TabsContent>
 
       {/* 수취 자료 */}

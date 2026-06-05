@@ -1,6 +1,7 @@
 import {
   Building2,
   CalendarCheck,
+  CalendarDays,
   FileSignature,
   FileText,
   LayoutDashboard,
@@ -35,6 +36,12 @@ export const navItems: NavItem[] = [
     href: "/filings",
     icon: FileText,
     description: "부가세·종합소득세 등 신고 관리",
+  },
+  {
+    title: "캘린더",
+    href: "/calendar",
+    icon: CalendarDays,
+    description: "전사 신고 마감 캘린더",
   },
   {
     title: "마감",
