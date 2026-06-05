@@ -8,9 +8,7 @@ import type { Database } from "@/types/database.types";
 const PUBLIC_PREFIXES = ["/login", "/signup", "/reset-password", "/update-password", "/auth"];
 
 function isPublicPath(pathname: string): boolean {
-  return PUBLIC_PREFIXES.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
-  );
+  return PUBLIC_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }
 
 /**
@@ -51,8 +49,11 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const publicPath = isPublicPath(pathname);
+  // API routes handle their own auth and must return JSON (401) rather than a
+  // redirect to the login HTML page.
+  const isApi = pathname.startsWith("/api");
 
-  if (!user && !publicPath) {
+  if (!user && !publicPath && !isApi) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("redirectTo", pathname);

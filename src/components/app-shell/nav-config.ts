@@ -6,6 +6,7 @@ import {
   FileText,
   LayoutDashboard,
   Settings,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 
@@ -58,6 +59,12 @@ export const navItems: NavItem[] = [
 ];
 
 export const secondaryNavItems: NavItem[] = [
+  {
+    title: "AI 인사이트",
+    href: "/admin",
+    icon: Sparkles,
+    description: "분류 정확도·AI 사용량 (대표 전용)",
+  },
   {
     title: "설정",
     href: "/settings",

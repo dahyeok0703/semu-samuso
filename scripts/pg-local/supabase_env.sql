@@ -52,3 +52,36 @@ $$;
 grant usage on schema auth to anon, authenticated, service_role;
 grant execute on function auth.uid() to anon, authenticated, service_role;
 grant select on auth.users to authenticated, service_role;
+
+-- storage shim (Supabase provides schema "storage"; recreate the minimum the
+-- migrations/policies touch so they can be applied & RLS-tested locally).
+create schema if not exists storage;
+
+create table if not exists storage.buckets (
+  id          text primary key,
+  name        text not null,
+  public      boolean not null default false,
+  created_at  timestamptz not null default now()
+);
+
+create table if not exists storage.objects (
+  id          uuid primary key default gen_random_uuid(),
+  bucket_id   text references storage.buckets (id),
+  name        text not null,
+  owner       uuid,
+  metadata    jsonb,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+alter table storage.objects enable row level security;
+
+-- Supabase's storage.foldername returns the path's folder segments.
+create or replace function storage.foldername(name text)
+returns text[]
+language sql
+immutable
+as $$ select string_to_array(name, '/'); $$;
+
+grant usage on schema storage to anon, authenticated, service_role;
+grant select, insert, update, delete on storage.objects to authenticated, service_role;
+grant select on storage.buckets to authenticated, service_role;

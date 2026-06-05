@@ -59,7 +59,9 @@ pnpm dev
 |------|:---:|------|
 | `NEXT_PUBLIC_SUPABASE_URL` | ✅ | Supabase API URL. 로컬은 `supabase start` 출력값. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | Supabase anon(public) 키. 브라우저에 노출됨. |
-| `SUPABASE_SERVICE_ROLE_KEY` | ⛔️(선택) | 서버 전용 관리 키. 어드민/유지보수 스크립트용. **절대 클라이언트 노출 금지.** 없으면 service-role 기능 비활성. |
+| `SUPABASE_SERVICE_ROLE_KEY` | ⛔️(선택) | 서버 전용 관리 키. 어드민/유지보수 스크립트용. **절대 클라이언트 노출 금지.** 없으면 service-role 기능(감사 로그·AI 사용량 기록) 비활성. |
+| `ANTHROPIC_API_KEY` | ⛔️(선택) | Claude API 키. 서류 자동 분류용. 없으면 자동 분류 비활성 + 수동 분류 폴백(앱은 정상 동작). |
+| `AI_DAILY_CLASSIFY_LIMIT` | ⛔️(선택) | 워크스페이스별 일일 자동 분류 호출 한도(기본 500). 비용 가드. |
 | `NEXT_PUBLIC_SITE_URL` | ⛔️(선택) | 인증 리다이렉트/메일 콜백 링크 생성용 공개 origin. 없으면 요청 호스트로 폴백. 프로덕션에서는 명시 권장. |
 
 ## 주요 스크립트
@@ -162,4 +164,10 @@ scripts           Docker 없이 RLS 테스트하는 로컬 PG 하니스
   전사 캘린더(`/calendar`, 월간 그리드+목록, 담당/유형/상태 필터, 임박 강조),
   연초 일괄 생성 배치, task 상태·문서 체크 변경 UI, 엔진 단위 테스트(vitest)
   · ⚠️ 마감일은 일반 케이스 기준 예시 — 세무사 검수/개정세법 반영 필요
-- ⬜️ 기능 페이지(신고/마감/수임)는 골격(빈 상태)만 — 추후 구현 예정
+- ✅ **자료 수취 + Claude AI 자동 분류(RAG 학습 루프)**: 드래그앤드롭 업로드(Storage,
+  워크스페이스별 경로·RLS), `/api/classify`에서 과거 확정 이력(classification_history)을
+  참고자료로 주입해 분류(Haiku 4.5 기본·Sonnet 4.6 폴백, structured output, prompt
+  caching), 사용자 확정/교정 시 이력 누적(쓸수록 정확↑), 누락 감지(docs_status 자동),
+  AI 사용량/원가 적재, 일일 한도·키 없으면 수동 폴백, 분류 정확도 추이 `/admin`
+  · ⚠️ 이력은 RLS + 프롬프트 격리로 타 워크스페이스 비노출
+- ⬜️ 기능 페이지(마감/수임)는 골격(빈 상태)만 — 추후 구현 예정

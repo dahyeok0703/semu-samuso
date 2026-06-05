@@ -16,6 +16,12 @@ const serverSchema = z.object({
   // Server-only secret. Used by admin/maintenance scripts, never sent to the client.
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
 
+  // Optional: Claude API for document auto-classification. Missing key →
+  // auto-classification disabled, app falls back to manual classification.
+  ANTHROPIC_API_KEY: z.string().min(1).optional(),
+  // Per-workspace daily auto-classification call cap (cost guard).
+  AI_DAILY_CLASSIFY_LIMIT: z.coerce.number().int().positive().default(500),
+
   // Public site URL — used to build auth redirect/callback links.
   NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
 
@@ -31,9 +37,7 @@ const clientSchema = z.object({
 const isServer = typeof window === "undefined";
 
 function formatErrors(error: z.ZodError): string {
-  return error.errors
-    .map((e) => `  • ${e.path.join(".") || "(root)"}: ${e.message}`)
-    .join("\n");
+  return error.errors.map((e) => `  • ${e.path.join(".") || "(root)"}: ${e.message}`).join("\n");
 }
 
 function parseEnv() {
@@ -46,6 +50,8 @@ function parseEnv() {
     ...(isServer
       ? {
           SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+          ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+          AI_DAILY_CLASSIFY_LIMIT: process.env.AI_DAILY_CLASSIFY_LIMIT,
           NODE_ENV: process.env.NODE_ENV,
         }
       : {}),
@@ -71,6 +77,11 @@ export const env = parseEnv() as z.infer<typeof serverSchema>;
 export const features = {
   /** Service-role operations (admin scripts, privileged maintenance jobs). */
   serviceRole: Boolean(env.SUPABASE_SERVICE_ROLE_KEY),
+  /** Claude API document auto-classification. Off → manual classification only. */
+  aiClassification: Boolean(env.ANTHROPIC_API_KEY),
 } as const;
+
+/** Supabase Storage bucket holding collected client documents. */
+export const DOCUMENTS_BUCKET = "documents";
 
 export type Env = typeof env;

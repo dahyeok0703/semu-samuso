@@ -1,8 +1,9 @@
 "use client";
 
-import { FileText, Send } from "lucide-react";
+import { Send } from "lucide-react";
 
 import { AssignmentManager } from "@/app/(app)/clients/[id]/_components/assignment-manager";
+import { DocumentsPanel } from "@/app/(app)/clients/[id]/_components/documents-panel";
 import { FilingSchedule } from "@/app/(app)/clients/[id]/_components/filing-schedule";
 import { EmptyState } from "@/components/empty-state";
 import { Badge } from "@/components/ui/badge";
@@ -11,22 +12,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatBizRegNo } from "@/lib/clients/biz-reg-no";
 import { CLIENT_STATUS_LABELS, TAX_TYPE_LABELS } from "@/lib/clients/constants";
 import type { WorkspaceMember } from "@/lib/clients/queries";
+import type { ClientDocument, TaskOption } from "@/lib/documents/queries";
 import type { ScheduleTask } from "@/lib/filings/queries";
-import type {
-  Client,
-  DocumentSource,
-  DocumentStatus,
-  ReminderChannel,
-  ReminderStatus,
-} from "@/types/database.types";
+import type { Client, ReminderChannel, ReminderStatus } from "@/types/database.types";
 
-type DocumentLite = {
-  id: string;
-  doc_type: string | null;
-  source: DocumentSource;
-  status: DocumentStatus;
-  received_at: string;
-};
 type ReminderLite = {
   id: string;
   channel: ReminderChannel;
@@ -36,16 +25,6 @@ type ReminderLite = {
   created_at: string;
 };
 
-const DOC_SOURCE: Record<DocumentSource, string> = {
-  upload: "업로드",
-  email: "이메일",
-  kakao: "카카오",
-  codef: "스크래핑",
-};
-const DOC_STATUS: Record<DocumentStatus, string> = {
-  pending_review: "검토 대기",
-  confirmed: "확정",
-};
 const REMINDER_CHANNEL: Record<ReminderChannel, string> = {
   email: "이메일",
   inapp: "인앱",
@@ -74,21 +53,31 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
 
 export function ClientDetailTabs({
   client,
+  workspaceId,
   members,
   assigneeIds,
   canEditAssignments,
   canWriteFilings,
+  canWriteDocuments,
+  isOwner,
+  aiEnabled,
   schedule,
   documents,
+  taskOptions,
   reminders,
 }: {
   client: Client;
+  workspaceId: string;
   members: WorkspaceMember[];
   assigneeIds: string[];
   canEditAssignments: boolean;
   canWriteFilings: boolean;
+  canWriteDocuments: boolean;
+  isOwner: boolean;
+  aiEnabled: boolean;
   schedule: ScheduleTask[];
-  documents: DocumentLite[];
+  documents: ClientDocument[];
+  taskOptions: TaskOption[];
   reminders: ReminderLite[];
 }) {
   return (
@@ -112,29 +101,15 @@ export function ClientDetailTabs({
 
       {/* 수취 자료 */}
       <TabsContent value="documents">
-        {documents.length === 0 ? (
-          <EmptyState
-            icon={FileText}
-            title="수취한 자료가 없습니다"
-            description="업로드·이메일·카카오·스크래핑으로 수집된 서류가 다음 단계에서 이곳에 표시됩니다."
-          />
-        ) : (
-          <ul className="divide-y rounded-xl border">
-            {documents.map((d) => (
-              <li key={d.id} className="flex items-center justify-between gap-3 p-3">
-                <div>
-                  <p className="text-sm font-medium">{d.doc_type ?? "미분류 서류"}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {DOC_SOURCE[d.source]} · {fmtDate(d.received_at)}
-                  </p>
-                </div>
-                <Badge variant={d.status === "confirmed" ? "success" : "warning"}>
-                  {DOC_STATUS[d.status]}
-                </Badge>
-              </li>
-            ))}
-          </ul>
-        )}
+        <DocumentsPanel
+          clientId={client.id}
+          workspaceId={workspaceId}
+          documents={documents}
+          taskOptions={taskOptions}
+          canWrite={canWriteDocuments}
+          isOwner={isOwner}
+          aiEnabled={aiEnabled}
+        />
       </TabsContent>
 
       {/* 독촉 이력 */}

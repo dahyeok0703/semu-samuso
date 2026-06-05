@@ -309,6 +309,8 @@ export type Database = {
           classified_by_ai: boolean;
           confidence: number | null;
           status: DocumentStatus;
+          ai_model: string | null;
+          ai_meta: Json;
           received_at: string;
           created_at: string;
           updated_at: string;
@@ -324,6 +326,8 @@ export type Database = {
           classified_by_ai?: boolean;
           confidence?: number | null;
           status?: DocumentStatus;
+          ai_model?: string | null;
+          ai_meta?: Json;
           received_at?: string;
           created_at?: string;
           updated_at?: string;
@@ -339,6 +343,8 @@ export type Database = {
           classified_by_ai?: boolean;
           confidence?: number | null;
           status?: DocumentStatus;
+          ai_model?: string | null;
+          ai_meta?: Json;
           received_at?: string;
           created_at?: string;
           updated_at?: string;

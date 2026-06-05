@@ -16,10 +16,11 @@ import {
 import {
   getClientAssigneeIds,
   getClientById,
-  getClientDocuments,
   getClientReminders,
   listWorkspaceMembers,
 } from "@/lib/clients/queries";
+import { listClientDocuments, listClientTaskOptions } from "@/lib/documents/queries";
+import { features } from "@/lib/env";
 import { getClientSchedule } from "@/lib/filings/queries";
 
 export async function generateMetadata({
@@ -43,11 +44,12 @@ export default async function ClientDetailPage({
   const client = await getClientById(id);
   if (!client) notFound();
 
-  const [assigneeIds, members, schedule, documents, reminders] = await Promise.all([
+  const [assigneeIds, members, schedule, documents, taskOptions, reminders] = await Promise.all([
     getClientAssigneeIds(id),
     listWorkspaceMembers(),
     getClientSchedule(id),
-    getClientDocuments(id),
+    listClientDocuments(id),
+    listClientTaskOptions(id),
     getClientReminders(id),
   ]);
 
@@ -91,12 +93,17 @@ export default async function ClientDetailPage({
 
       <ClientDetailTabs
         client={client}
+        workspaceId={session.workspace.id}
         members={members}
         assigneeIds={assigneeIds}
         canEditAssignments={isOwner}
         canWriteFilings={canEdit}
+        canWriteDocuments={canEdit}
+        isOwner={isOwner}
+        aiEnabled={features.aiClassification}
         schedule={schedule}
         documents={documents}
+        taskOptions={taskOptions}
         reminders={reminders}
       />
     </div>
