@@ -189,6 +189,21 @@ export async function getOwnerDashboard(): Promise<OwnerDashboard> {
   };
 }
 
+/** Counts for the owner "다음 할 일" CTA widget. */
+export async function getSetupState(): Promise<{
+  clients: number;
+  tasks: number;
+  members: number;
+}> {
+  const supabase = await createClient();
+  const [c, t, m] = await Promise.all([
+    supabase.from("clients").select("id", { count: "exact", head: true }),
+    supabase.from("filing_tasks").select("id", { count: "exact", head: true }),
+    supabase.from("members").select("id", { count: "exact", head: true }).eq("status", "active"),
+  ]);
+  return { clients: c.count ?? 0, tasks: t.count ?? 0, members: m.count ?? 0 };
+}
+
 // ---------------------------------------------------------------------------
 // Staff dashboard (assigned scope only)
 // ---------------------------------------------------------------------------

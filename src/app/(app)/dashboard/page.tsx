@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
 import { OwnerDashboard } from "@/app/(app)/dashboard/_components/owner-dashboard";
 import { StaffDashboard } from "@/app/(app)/dashboard/_components/staff-dashboard";
+import { ProductTour } from "@/app/(app)/dashboard/_components/product-tour";
 import { PageHeader } from "@/components/page-header";
 import { requireSession } from "@/lib/auth/session";
 
@@ -10,6 +12,9 @@ export const metadata: Metadata = { title: "대시보드" };
 export default async function DashboardPage() {
   const session = await requireSession();
   const isOwner = session.member.role === "owner";
+
+  // New owners go through the setup wizard first (one time).
+  if (isOwner && !session.workspace.onboarded_at) redirect("/onboarding");
 
   return (
     <div className="space-y-6">
@@ -23,6 +28,7 @@ export default async function DashboardPage() {
       />
 
       {isOwner ? <OwnerDashboard /> : <StaffDashboard memberId={session.member.id} />}
+      <ProductTour />
     </div>
   );
 }

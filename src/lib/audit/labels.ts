@@ -27,6 +27,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "member.activated": "직원 활성화",
   "member.deactivated": "직원 비활성화",
   "member.joined": "직원 합류",
+  "onboarding.completed": "온보딩 완료",
 };
 
 export function auditActionLabel(action: string): string {

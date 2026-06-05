@@ -44,6 +44,7 @@ export type Database = {
           plan: WorkspacePlan;
           trial_ends_at: string | null;
           billing_customer_id: string | null;
+          onboarded_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -53,6 +54,7 @@ export type Database = {
           plan?: WorkspacePlan;
           trial_ends_at?: string | null;
           billing_customer_id?: string | null;
+          onboarded_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -62,6 +64,7 @@ export type Database = {
           plan?: WorkspacePlan;
           trial_ends_at?: string | null;
           billing_customer_id?: string | null;
+          onboarded_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };

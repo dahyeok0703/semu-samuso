@@ -1,11 +1,56 @@
 import Link from "next/link";
-import { AlertTriangle, CalendarDays, CalendarRange, Users } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  Building2,
+  CalendarDays,
+  CalendarPlus,
+  CalendarRange,
+  UserPlus,
+  Users,
+} from "lucide-react";
 
 import { FilingProgressChart, StaffLoadChart } from "@/app/(app)/dashboard/_components/charts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getOwnerDashboard } from "@/lib/dashboard/queries";
+import { getOwnerDashboard, getSetupState } from "@/lib/dashboard/queries";
+
+type NextAction = { icon: typeof Building2; label: string; href: string };
+
+async function NextActions() {
+  const s = await getSetupState();
+  const actions: NextAction[] = [];
+  if (s.clients === 0)
+    actions.push({ icon: Building2, label: "거래처 추가하기", href: "/clients" });
+  if (s.tasks === 0)
+    actions.push({ icon: CalendarPlus, label: "신고 일정 생성하기", href: "/calendar" });
+  if (s.members <= 1) actions.push({ icon: UserPlus, label: "직원 초대하기", href: "/team" });
+  if (actions.length === 0) return null;
+
+  return (
+    <Card className="border-primary/30 bg-primary/5">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">다음 할 일</CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-2 sm:grid-cols-3">
+        {actions.map((a) => {
+          const Icon = a.icon;
+          return (
+            <Button key={a.href} asChild variant="outline" className="justify-between">
+              <Link href={a.href}>
+                <span className="flex items-center gap-2">
+                  <Icon className="size-4" /> {a.label}
+                </span>
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          );
+        })}
+      </CardContent>
+    </Card>
+  );
+}
 
 function StatCard({
   icon: Icon,
@@ -37,6 +82,8 @@ export async function OwnerDashboard() {
 
   return (
     <div className="space-y-6">
+      <NextActions />
+
       {/* Stat cards */}
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
