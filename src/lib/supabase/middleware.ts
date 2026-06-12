@@ -12,10 +12,17 @@ const PUBLIC_PREFIXES = [
   "/update-password",
   "/auth",
   "/invite",
+  // Public marketing + legal pages.
   "/pricing",
+  "/features",
+  "/faq",
+  "/legal",
 ];
 
 function isPublicPath(pathname: string): boolean {
+  // Landing page and SEO/metadata assets are public.
+  if (pathname === "/") return true;
+  if (pathname === "/opengraph-image" || pathname.startsWith("/opengraph-image")) return true;
   return PUBLIC_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }
 
