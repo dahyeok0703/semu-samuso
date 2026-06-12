@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { FilingProgressChart, StaffLoadChart } from "@/app/(app)/dashboard/_components/charts";
+import { QuotaCard } from "@/app/(app)/dashboard/_components/quota-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -105,6 +106,9 @@ export async function OwnerDashboard() {
           hint="임박(D-7) + 자료 미제출"
         />
       </div>
+
+      {/* AI document usage vs quota */}
+      <QuotaCard />
 
       {/* Charts */}
       <div className="grid gap-4 lg:grid-cols-2">

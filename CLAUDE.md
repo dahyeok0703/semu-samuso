@@ -62,7 +62,9 @@ supabase/              # config.toml + migrations/
 | 제출서류 체크리스트 | `expected_documents`     | 신고별 필요 서류 + 수취 여부(누락 체크).                                                 |
 | 서류                | `documents`              | 수집 파일. `source`(upload/email/kakao/codef), AI 분류 메타.                             |
 | 분류 학습 이력      | `classification_history` | ★RAG 학습 루프. 확정/교정된 분류 누적. **워크스페이스 외부로 절대 노출 금지.**           |
-| AI 사용량           | `ai_usage`               | ★마진 보호. 워크스페이스·월별 토큰/원가 집계. owner 읽기 전용.                           |
+| AI 사용량           | `ai_usage`               | ★마진 보호. 워크스페이스·월별 토큰/캐시/원가/오버리지 집계. owner 읽기 전용.             |
+| 분류 대기열         | `classification_jobs`    | Batch API(50%↓) 분류 큐. 워크스페이스 범위 조회/삽입, service_role 가 결과 반영.         |
+| 마진 플래그         | `margin_flags`           | ★내부 전용. 월별 MRR/COGS/마진율, 목표 미만 자동 플래그. **service_role 전용**.          |
 | 리마인더            | `reminders`              | 거래처 대상 발송 기록(email/inapp/kakao/sms).                                            |
 | 인앱 알림           | `notifications`          | 직원별 알림. 본인 것만 조회/수정.                                                        |
 | 감사 로그           | `audit_logs`             | 행위 추적. owner 읽기 전용, 기록은 서비스 역할.                                          |
@@ -88,7 +90,7 @@ supabase/              # config.toml + migrations/
      - 쓰기(owner): `... and is_owner()`.
      - 쓰기(staff 범위): `... and (is_owner() or is_assigned_to_client(client_id))`.
      - owner 전용 조회(`ai_usage`/`audit_logs`/`billing_events`/`payments`): `... and is_owner()`, 기록(insert)은 `service_role` 전용(RLS 우회).
-     - `billing_accounts`(빌링키 등 민감정보): authenticated 정책/권한 **없음** — service_role 전용. 화면 표시는 `workspaces`의 카드 브랜드/끝 4자리만.
+     - `billing_accounts`(빌링키)·`margin_flags`(내부 마진 지표): authenticated 정책/권한 **없음** — service_role 전용. 빌링키 화면 표시는 `workspaces`의 카드 브랜드/끝 4자리만. 마진 모니터는 `isSuperuser(email)` 가드 + service_role 집계.
      - `classification_history`: `select`은 `workspace_id = current_workspace_id()`로 **반드시 자기 워크스페이스로 한정**.
      - `notifications`: 본인(`member_id = current_member_id()`) 것만.
 

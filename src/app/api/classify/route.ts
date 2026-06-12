@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 
 import { classifyDocument, AiDisabledError } from "@/lib/ai/classify";
 import { AUTO_CONFIRM_CONFIDENCE } from "@/lib/ai/schema";
-import { getDailyClassifyCount } from "@/lib/ai/usage";
+import { getDailyClassifyCount, getMonthlyDocCount } from "@/lib/ai/usage";
+import { decideDocQuota } from "@/lib/pricing/quota";
 import { logAudit } from "@/lib/audit";
 import { getSession } from "@/lib/auth/session";
 import { getClientAssigneeIds } from "@/lib/clients/queries";
@@ -86,6 +87,23 @@ export async function POST(request: Request) {
     );
   }
 
+  // ★마진 보호: 월 문서 쿼터 판정. 하드캡이면 분류 중단(수동 모드), 오버리지면 과금 후 진행.
+  const monthlyUsed = await getMonthlyDocCount(supabase, session.workspace.id);
+  const quota = decideDocQuota(session.workspace, monthlyUsed);
+  if (quota.status === "blocked") {
+    return json(
+      {
+        ok: false,
+        code: "QUOTA_EXCEEDED",
+        error: `이번 달 포함 문서 한도(${quota.includedDocs}건)를 모두 사용했습니다. 상위 플랜으로 업그레이드하거나 수동으로 분류해 주세요.`,
+        includedDocs: quota.includedDocs,
+        used: quota.used,
+      },
+      402,
+    );
+  }
+  const overageUnitPriceKrw = quota.status === "overage" ? quota.overageUnitPriceKrw : undefined;
+
   const { data: client } = await supabase
     .from("clients")
     .select("id, biz_name, biz_reg_no")
@@ -111,6 +129,7 @@ export async function POST(request: Request) {
       bytes,
       contentType,
       fileName,
+      overageUnitPriceKrw,
     });
 
     const c = outcome.classification;
@@ -162,6 +181,7 @@ export async function POST(request: Request) {
       confidence: c.confidence,
       status,
       model: outcome.model,
+      overage: overageUnitPriceKrw !== undefined,
     });
   } catch (error) {
     if (error instanceof AiDisabledError) {

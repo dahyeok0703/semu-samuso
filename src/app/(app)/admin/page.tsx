@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Sparkles } from "lucide-react";
 
+import { MarginMonitor } from "@/app/(app)/admin/_components/margin-monitor";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { requireSession } from "@/lib/auth/session";
-import { features } from "@/lib/env";
+import { features, isSuperuser } from "@/lib/env";
 import { getAiUsage, getClassificationInsights } from "@/lib/insights/queries";
 
 export const metadata: Metadata = { title: "AI 인사이트" };
@@ -29,6 +30,7 @@ export default async function AdminPage() {
 
   const [insights, usage] = await Promise.all([getClassificationInsights(), getAiUsage()]);
   const { overall, byMonth, byClient } = insights;
+  const showMarginMonitor = isSuperuser(session.email);
 
   return (
     <div className="space-y-6">
@@ -179,6 +181,9 @@ export default async function AdminPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Internal margin monitor — superusers only (cross-workspace). */}
+      {showMarginMonitor ? <MarginMonitor /> : null}
     </div>
   );
 }

@@ -21,6 +21,7 @@ export type ReminderChannel = "email" | "inapp" | "kakao" | "sms";
 export type ReminderStatus = "queued" | "sent" | "failed";
 export type InvitationStatus = "pending" | "accepted" | "revoked";
 export type SubscriptionStatus = "none" | "trialing" | "active" | "past_due" | "canceled";
+export type AiQuotaPolicy = "hardcap" | "overage";
 
 type WorkspaceFk<Name extends string> = {
   foreignKeyName: Name;
@@ -47,6 +48,7 @@ export type Database = {
           cancel_at_period_end: boolean;
           card_brand: string | null;
           card_last4: string | null;
+          ai_quota_policy: AiQuotaPolicy | null;
           created_at: string;
           updated_at: string;
         };
@@ -64,6 +66,7 @@ export type Database = {
           cancel_at_period_end?: boolean;
           card_brand?: string | null;
           card_last4?: string | null;
+          ai_quota_policy?: AiQuotaPolicy | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -81,6 +84,7 @@ export type Database = {
           cancel_at_period_end?: boolean;
           card_brand?: string | null;
           card_last4?: string | null;
+          ai_quota_policy?: AiQuotaPolicy | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -448,8 +452,11 @@ export type Database = {
           month: string;
           input_tokens: number;
           output_tokens: number;
+          cache_read_tokens: number;
           doc_count: number;
+          overage_docs: number;
           est_cost_krw: number;
+          overage_cost_krw: number;
           created_at: string;
           updated_at: string;
         };
@@ -459,8 +466,11 @@ export type Database = {
           month: string;
           input_tokens?: number;
           output_tokens?: number;
+          cache_read_tokens?: number;
           doc_count?: number;
+          overage_docs?: number;
           est_cost_krw?: number;
+          overage_cost_krw?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -470,8 +480,11 @@ export type Database = {
           month?: string;
           input_tokens?: number;
           output_tokens?: number;
+          cache_read_tokens?: number;
           doc_count?: number;
+          overage_docs?: number;
           est_cost_krw?: number;
+          overage_cost_krw?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -753,6 +766,86 @@ export type Database = {
         };
         Relationships: [WorkspaceFk<"payments_workspace_id_fkey">];
       };
+      margin_flags: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          month: string;
+          mrr_krw: number;
+          cogs_krw: number;
+          margin_rate: number | null;
+          flagged: boolean;
+          notified_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          month: string;
+          mrr_krw?: number;
+          cogs_krw?: number;
+          margin_rate?: number | null;
+          flagged?: boolean;
+          notified_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          workspace_id?: string;
+          month?: string;
+          mrr_krw?: number;
+          cogs_krw?: number;
+          margin_rate?: number | null;
+          flagged?: boolean;
+          notified_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [WorkspaceFk<"margin_flags_workspace_id_fkey">];
+      };
+      classification_jobs: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          document_id: string;
+          batch_id: string | null;
+          custom_id: string;
+          status: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          document_id: string;
+          batch_id?: string | null;
+          custom_id: string;
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          workspace_id?: string;
+          document_id?: string;
+          batch_id?: string | null;
+          custom_id?: string;
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          WorkspaceFk<"classification_jobs_workspace_id_fkey">,
+          {
+            foreignKeyName: "classification_jobs_document_id_fkey";
+            columns: ["document_id"];
+            referencedRelation: "documents";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       reminder_settings: {
         Row: {
           workspace_id: string;
@@ -841,6 +934,7 @@ export type Database = {
       reminder_channel: ReminderChannel;
       reminder_status: ReminderStatus;
       subscription_status: SubscriptionStatus;
+      ai_quota_policy: AiQuotaPolicy;
     };
     CompositeTypes: Record<never, never>;
   };
@@ -863,3 +957,6 @@ export type AuditLog = Tables["audit_logs"]["Row"];
 export type BillingEvent = Tables["billing_events"]["Row"];
 export type BillingAccount = Tables["billing_accounts"]["Row"];
 export type Payment = Tables["payments"]["Row"];
+export type AiUsageRowDb = Tables["ai_usage"]["Row"];
+export type MarginFlag = Tables["margin_flags"]["Row"];
+export type ClassificationJob = Tables["classification_jobs"]["Row"];

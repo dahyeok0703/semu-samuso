@@ -18,7 +18,12 @@ function startOfTodayISO(): string {
 export type UsageDelta = {
   inputTokens: number;
   outputTokens: number;
+  /** prompt-cache read tokens (billed at 0.1× input) — tracked for COGS. */
+  cacheReadTokens?: number;
   costKrw: number;
+  /** When this doc was billed as overage, the extra charge to the customer. */
+  overageDocs?: number;
+  overageCostKrw?: number;
 };
 
 /**
@@ -33,7 +38,9 @@ export async function recordAiUsage(workspaceId: string, delta: UsageDelta): Pro
 
   const { data: existing } = await admin
     .from("ai_usage")
-    .select("input_tokens, output_tokens, doc_count, est_cost_krw")
+    .select(
+      "input_tokens, output_tokens, cache_read_tokens, doc_count, overage_docs, est_cost_krw, overage_cost_krw",
+    )
     .eq("workspace_id", workspaceId)
     .eq("month", month)
     .maybeSingle();
@@ -44,12 +51,29 @@ export async function recordAiUsage(workspaceId: string, delta: UsageDelta): Pro
       month,
       input_tokens: (existing?.input_tokens ?? 0) + delta.inputTokens,
       output_tokens: (existing?.output_tokens ?? 0) + delta.outputTokens,
+      cache_read_tokens: (existing?.cache_read_tokens ?? 0) + (delta.cacheReadTokens ?? 0),
       doc_count: (existing?.doc_count ?? 0) + 1,
+      overage_docs: (existing?.overage_docs ?? 0) + (delta.overageDocs ?? 0),
       est_cost_krw: Number(existing?.est_cost_krw ?? 0) + delta.costKrw,
+      overage_cost_krw: Number(existing?.overage_cost_krw ?? 0) + (delta.overageCostKrw ?? 0),
     },
     { onConflict: "workspace_id,month" },
   );
   if (error) console.error("[ai_usage] failed to record:", error.message);
+}
+
+/** This month's classified doc count for the workspace (quota meter). */
+export async function getMonthlyDocCount(
+  supabase: SupabaseServer,
+  workspaceId: string,
+): Promise<number> {
+  const { data } = await supabase
+    .from("ai_usage")
+    .select("doc_count")
+    .eq("workspace_id", workspaceId)
+    .eq("month", firstOfMonthISO())
+    .maybeSingle();
+  return data?.doc_count ?? 0;
 }
 
 /** Count today's AI classifications for the workspace (daily-limit guard). */

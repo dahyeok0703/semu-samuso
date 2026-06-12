@@ -18,6 +18,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "document.reclassified": "분류 교정",
   "document.deleted": "자료 삭제",
   "ai.classified": "AI 자동 분류",
+  "ai.batch_enqueued": "AI 배치 분류 요청",
   "reminder.sent": "독촉 발송",
   "reminder.settings_updated": "리마인더 설정 변경",
   "member.invited": "직원 초대",

@@ -43,6 +43,10 @@ const serverSchema = z.object({
   // Optional: shared secret protecting the daily reminder cron route.
   CRON_SECRET: z.string().optional(),
 
+  // Optional: internal superuser emails (comma-separated). Gate cross-workspace
+  // margin monitoring on /admin. Empty → nobody sees the internal margin view.
+  SUPERUSER_EMAILS: z.string().optional(),
+
   // Optional: PortOne v2 billing (정기결제, TossPayments PG). Without these the
   // billing UI shows "준비중" and the app stays fully usable (dev/internal).
   PORTONE_API_SECRET: z.string().optional(), // V2 API secret (server-only)
@@ -95,6 +99,7 @@ function parseEnv() {
           SOLAPI_PFID: process.env.SOLAPI_PFID,
           SOLAPI_KAKAO_TEMPLATE_ID: process.env.SOLAPI_KAKAO_TEMPLATE_ID,
           CRON_SECRET: process.env.CRON_SECRET,
+          SUPERUSER_EMAILS: process.env.SUPERUSER_EMAILS,
           PORTONE_API_SECRET: process.env.PORTONE_API_SECRET,
           PORTONE_WEBHOOK_SECRET: process.env.PORTONE_WEBHOOK_SECRET,
           NODE_ENV: process.env.NODE_ENV,
@@ -149,6 +154,18 @@ export const features = {
   /** Webhook signature verification possible (PortOne webhook secret present). */
   billingWebhook: Boolean(env.PORTONE_WEBHOOK_SECRET),
 } as const;
+
+/** Internal superusers (cross-workspace margin monitor). Parsed once. */
+export const SUPERUSER_EMAILS: string[] = (env.SUPERUSER_EMAILS ?? "")
+  .split(",")
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
+
+/** Whether `email` is an internal superuser. */
+export function isSuperuser(email: string | null | undefined): boolean {
+  if (!email) return false;
+  return SUPERUSER_EMAILS.includes(email.toLowerCase());
+}
 
 /** Supabase Storage bucket holding collected client documents. */
 export const DOCUMENTS_BUCKET = "documents";

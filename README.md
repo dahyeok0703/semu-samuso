@@ -198,4 +198,13 @@ scripts           Docker 없이 RLS 테스트하는 로컬 PG 하니스
   매일 Cron(`/api/cron/billing`)로 만료 강등 · 빌링키는 서비스롤 전용 테이블에 격리(화면 비노출)
   · 🔑 PortOne 키 없으면 결제 UI는 "준비중"으로 비활성, 핵심 기능은 정상(내부용 런칭 가능)
   · 📄 테스트 결제 흐름: `docs/billing-test-flow.md`
+- ✅ **비용 계측 + 마진 보호**(목표: 어떤 계정도 마진 ≥ 목표치 50% 보장): 단가·환율·PG수수료·
+  메시지단가·목표마진·쿼터·초과정책을 전부 설정(`lib/pricing/cogs.ts`)으로 분리. 플랜별 포함
+  문서 쿼터(free 30 / team 400×석 / pro 10,000) 초과 시 **하드캡(분류 중단→수동)** 또는
+  **오버리지(문서당 원가×2 자동 과금)** 선택. 비용 절감 기본(Haiku 고정·prompt caching·낮은
+  confidence만 Sonnet 폴백·비긴급 분류는 Batch API 50%↓ 경로 `/api/cron/ai-batch`). owner
+  대시보드 문서 사용량/쿼터 게이지, 내부(슈퍼유저) 마진 모니터(`/admin`: 워크스페이스별 MRR vs
+  COGS·목표 미만 자동 플래그)+ 일일 크론(`/api/cron/margin`) 알림
+  · 🔒 `ai_usage`는 owner 전용, `margin_flags`는 service_role 전용(내부 비노출)
+  · 📄 마진 모델: `docs/margin-protection.md`
 - ⬜️ 기능 페이지(마감/수임)는 골격(빈 상태)만 — 추후 구현 예정

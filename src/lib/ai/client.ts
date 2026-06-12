@@ -3,19 +3,11 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 
 import { env, features } from "@/lib/env";
+import { aiCallCostKrw } from "@/lib/pricing/cogs";
 
 /** Models (user-specified): Haiku 4.5 primary, Sonnet 4.6 fallback on low confidence / parse failure. */
 export const PRIMARY_MODEL = "claude-haiku-4-5";
 export const FALLBACK_MODEL = "claude-sonnet-4-6";
-
-/** USD→KRW assumption for cost estimation (ai_usage). Adjust as needed. */
-export const USD_TO_KRW = 1400;
-
-/** Per-1M-token USD pricing (skill catalog). cache reads ≈ 0.1× input. */
-export const MODEL_PRICING: Record<string, { input: number; output: number }> = {
-  "claude-haiku-4-5": { input: 1.0, output: 5.0 },
-  "claude-sonnet-4-6": { input: 3.0, output: 15.0 },
-};
 
 let cached: Anthropic | null = null;
 
@@ -36,17 +28,17 @@ export function getAnthropic(): Anthropic | null {
   return cached;
 }
 
-/** Estimated cost in KRW for a single call's token usage. */
+/**
+ * Estimated cost in KRW for a single call's token usage. Delegates to the
+ * single source of truth (lib/pricing/cogs.ts) so pricing/FX changes are
+ * configured in one place. `batch` applies the Batch API 50% discount.
+ */
 export function estimateCostKrw(
   model: string,
   inputTokens: number,
   outputTokens: number,
   cacheReadTokens: number,
+  batch = false,
 ): number {
-  const price = MODEL_PRICING[model] ?? MODEL_PRICING[PRIMARY_MODEL]!;
-  const usd =
-    (inputTokens / 1_000_000) * price.input +
-    (cacheReadTokens / 1_000_000) * price.input * 0.1 +
-    (outputTokens / 1_000_000) * price.output;
-  return Math.round(usd * USD_TO_KRW * 100) / 100;
+  return aiCallCostKrw({ model, inputTokens, outputTokens, cacheReadTokens, batch });
 }

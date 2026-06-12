@@ -8,6 +8,14 @@
     {
       "path": "/api/cron/billing",
       "schedule": "30 0 * * *"
+    },
+    {
+      "path": "/api/cron/margin",
+      "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/cron/ai-batch",
+      "schedule": "*/30 * * * *"
     }
   ]
 }

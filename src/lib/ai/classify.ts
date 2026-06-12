@@ -46,6 +46,8 @@ export async function classifyDocument(args: {
   bytes: Uint8Array;
   contentType: string;
   fileName: string;
+  /** When set, this doc exceeded the plan quota and is billed as overage (₩/doc). */
+  overageUnitPriceKrw?: number;
 }): Promise<ClassifyOutcome> {
   const anthropic = getAnthropic();
   if (!anthropic) throw new AiDisabledError();
@@ -67,6 +69,7 @@ export async function classifyDocument(args: {
   let totalCost = 0;
   let totalInput = 0;
   let totalOutput = 0;
+  let totalCacheRead = 0;
 
   async function call(model: string): Promise<CallResult> {
     const res = await anthropic!.messages.create({
@@ -78,7 +81,8 @@ export async function classifyDocument(args: {
     });
     const u = res.usage;
     const cacheRead = u.cache_read_input_tokens ?? 0;
-    totalInput += u.input_tokens + cacheRead;
+    totalInput += u.input_tokens;
+    totalCacheRead += cacheRead;
     totalOutput += u.output_tokens;
     totalCost += estimateCostKrw(model, u.input_tokens, u.output_tokens, cacheRead);
 
@@ -118,10 +122,13 @@ export async function classifyDocument(args: {
     }
   }
 
+  const overage = args.overageUnitPriceKrw;
   await recordAiUsage(args.workspaceId, {
     inputTokens: totalInput,
     outputTokens: totalOutput,
+    cacheReadTokens: totalCacheRead,
     costKrw: totalCost,
+    ...(overage ? { overageDocs: 1, overageCostKrw: overage } : {}),
   });
 
   if (!parsed) {
