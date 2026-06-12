@@ -55,30 +55,30 @@ pnpm dev
 
 ## 환경변수
 
-| 변수 | 필수 | 설명 |
-|------|:---:|------|
-| `NEXT_PUBLIC_SUPABASE_URL` | ✅ | Supabase API URL. 로컬은 `supabase start` 출력값. |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | Supabase anon(public) 키. 브라우저에 노출됨. |
-| `SUPABASE_SERVICE_ROLE_KEY` | ⛔️(선택) | 서버 전용 관리 키. 어드민/유지보수 스크립트용. **절대 클라이언트 노출 금지.** 없으면 service-role 기능(감사 로그·AI 사용량 기록) 비활성. |
-| `ANTHROPIC_API_KEY` | ⛔️(선택) | Claude API 키. 서류 자동 분류용. 없으면 자동 분류 비활성 + 수동 분류 폴백(앱은 정상 동작). |
-| `AI_DAILY_CLASSIFY_LIMIT` | ⛔️(선택) | 워크스페이스별 일일 자동 분류 호출 한도(기본 500). 비용 가드. |
-| `SMTP_HOST` · `SMTP_PORT` · `SMTP_USER` · `SMTP_PASS` · `SMTP_FROM` | ⛔️(선택) | 독촉 이메일 발송용 SMTP. 없으면 이메일 채널은 발송 대신 로그(개발/데모). |
-| `SOLAPI_API_KEY` · `SOLAPI_API_SECRET` · `SOLAPI_SENDER` · `SOLAPI_PFID` · `SOLAPI_KAKAO_TEMPLATE_ID` | ⛔️(선택) | 카카오 알림톡/SMS. 없으면 해당 채널 비활성 + 자동 이메일 폴백. |
-| `CRON_SECRET` | ⛔️(선택) | `/api/cron/reminders` 보호용 시크릿(Vercel Cron). 프로덕션 필수. |
-| `NEXT_PUBLIC_SITE_URL` | ⛔️(선택) | 인증 리다이렉트/메일 콜백 링크 생성용 공개 origin. 없으면 요청 호스트로 폴백. 프로덕션에서는 명시 권장. |
+| 변수                                                                                                  |   필수   | 설명                                                                                                                                     |
+| ----------------------------------------------------------------------------------------------------- | :------: | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`                                                                            |    ✅    | Supabase API URL. 로컬은 `supabase start` 출력값.                                                                                        |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`                                                                       |    ✅    | Supabase anon(public) 키. 브라우저에 노출됨.                                                                                             |
+| `SUPABASE_SERVICE_ROLE_KEY`                                                                           | ⛔️(선택) | 서버 전용 관리 키. 어드민/유지보수 스크립트용. **절대 클라이언트 노출 금지.** 없으면 service-role 기능(감사 로그·AI 사용량 기록) 비활성. |
+| `ANTHROPIC_API_KEY`                                                                                   | ⛔️(선택) | Claude API 키. 서류 자동 분류용. 없으면 자동 분류 비활성 + 수동 분류 폴백(앱은 정상 동작).                                               |
+| `AI_DAILY_CLASSIFY_LIMIT`                                                                             | ⛔️(선택) | 워크스페이스별 일일 자동 분류 호출 한도(기본 500). 비용 가드.                                                                            |
+| `SMTP_HOST` · `SMTP_PORT` · `SMTP_USER` · `SMTP_PASS` · `SMTP_FROM`                                   | ⛔️(선택) | 독촉 이메일 발송용 SMTP. 없으면 이메일 채널은 발송 대신 로그(개발/데모).                                                                 |
+| `SOLAPI_API_KEY` · `SOLAPI_API_SECRET` · `SOLAPI_SENDER` · `SOLAPI_PFID` · `SOLAPI_KAKAO_TEMPLATE_ID` | ⛔️(선택) | 카카오 알림톡/SMS. 없으면 해당 채널 비활성 + 자동 이메일 폴백.                                                                           |
+| `CRON_SECRET`                                                                                         | ⛔️(선택) | `/api/cron/reminders` 보호용 시크릿(Vercel Cron). 프로덕션 필수.                                                                         |
+| `NEXT_PUBLIC_SITE_URL`                                                                                | ⛔️(선택) | 인증 리다이렉트/메일 콜백 링크 생성용 공개 origin. 없으면 요청 호스트로 폴백. 프로덕션에서는 명시 권장.                                  |
 
 ## 주요 스크립트
 
-| 명령 | 설명 |
-|------|------|
-| `pnpm dev` | 개발 서버 |
-| `pnpm build` / `pnpm start` | 프로덕션 빌드 / 실행 |
-| `pnpm typecheck` | 타입 검사 |
-| `pnpm lint` / `pnpm format` | 린트 / 포맷 |
-| `pnpm db:start` / `pnpm db:stop` | 로컬 Supabase 시작 / 정지 |
-| `pnpm db:reset` | 로컬 DB 초기화 + 마이그레이션 재적용 |
-| `pnpm db:diff` | 스키마 변경분으로 새 마이그레이션 생성 |
-| `pnpm db:types` | DB 스키마 → TypeScript 타입 재생성 |
+| 명령                             | 설명                                   |
+| -------------------------------- | -------------------------------------- |
+| `pnpm dev`                       | 개발 서버                              |
+| `pnpm build` / `pnpm start`      | 프로덕션 빌드 / 실행                   |
+| `pnpm typecheck`                 | 타입 검사                              |
+| `pnpm lint` / `pnpm format`      | 린트 / 포맷                            |
+| `pnpm db:start` / `pnpm db:stop` | 로컬 Supabase 시작 / 정지              |
+| `pnpm db:reset`                  | 로컬 DB 초기화 + 마이그레이션 재적용   |
+| `pnpm db:diff`                   | 스키마 변경분으로 새 마이그레이션 생성 |
+| `pnpm db:types`                  | DB 스키마 → TypeScript 타입 재생성     |
 
 ## 데이터 모델
 
@@ -112,8 +112,8 @@ pnpm db:types          # public 스키마 → src/types/database.types.ts 재생
 
 데모 로그인(시드, 로컬 전용):
 
-| 역할 | 이메일 | 비밀번호 |
-|------|--------|----------|
+| 역할        | 이메일                 | 비밀번호   |
+| ----------- | ---------------------- | ---------- |
 | 대표(owner) | `demo-owner@semu.test` | `demo1234` |
 | 직원(staff) | `demo-staff@semu.test` | `demo1234` |
 
@@ -189,4 +189,13 @@ scripts           Docker 없이 RLS 테스트하는 로컬 PG 하니스
   토글(미설정 시 자동 이메일 폴백). 규칙 엔진(D-7/3/1·docs 미완료 후보), `/reminders`
   (후보 일괄/개별 발송·자동발송 ON/OFF·채널 선택·이력), 템플릿(거래처/마감일/필요서류),
   거래처 [독촉 이력] 탭 + 헤더 알림 벨, 매일 1회 Vercel Cron(`/api/cron/reminders`)
+- ✅ **구독 결제(PortOne v2 빌링키 · 토스페이먼츠)**: 어댑터 분리(`lib/billing/provider.ts`
+  → 토스 직연동 교체 가능), 플랜(free 1인·거래처 10건 / team 시트당 월정액 / pro 무제한+연동),
+  14일 무료체험 → 만료 시 free 강등. 공개 `/pricing` + 내부 `/billing`(현재 플랜·결제수단·청구
+  이력·세금계산서 안내), 빌링키 발급→첫 결제→매월 자동 청구·플랜/시트 변경·결제수단 변경·취소/재개,
+  웹훅 `/api/webhooks/portone`(Standard Webhooks 서명 검증 + `event_key` 멱등 + 본문 불신뢰 재조회),
+  플랜·시트·연동 한도 enforcement(거래처/직원/카카오), 결제 실패 그레이스(3일)+상단 배너,
+  매일 Cron(`/api/cron/billing`)로 만료 강등 · 빌링키는 서비스롤 전용 테이블에 격리(화면 비노출)
+  · 🔑 PortOne 키 없으면 결제 UI는 "준비중"으로 비활성, 핵심 기능은 정상(내부용 런칭 가능)
+  · 📄 테스트 결제 흐름: `docs/billing-test-flow.md`
 - ⬜️ 기능 페이지(마감/수임)는 골격(빈 상태)만 — 추후 구현 예정

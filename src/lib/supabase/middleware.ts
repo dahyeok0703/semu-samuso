@@ -12,6 +12,7 @@ const PUBLIC_PREFIXES = [
   "/update-password",
   "/auth",
   "/invite",
+  "/pricing",
 ];
 
 function isPublicPath(pathname: string): boolean {

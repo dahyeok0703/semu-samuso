@@ -28,6 +28,12 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "member.deactivated": "직원 비활성화",
   "member.joined": "직원 합류",
   "onboarding.completed": "온보딩 완료",
+  "billing.trial_started": "무료체험 시작",
+  "billing.subscribed": "구독 시작",
+  "billing.plan_changed": "플랜 변경",
+  "billing.method_updated": "결제수단 변경",
+  "billing.canceled": "구독 취소",
+  "billing.resumed": "구독 재개",
 };
 
 export function auditActionLabel(action: string): string {

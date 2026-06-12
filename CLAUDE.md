@@ -52,22 +52,24 @@ supabase/              # config.toml + migrations/
 
 ## 2. 도메인 용어 (Domain glossary)
 
-| 용어 | 코드 식별자 (테이블) | 설명 |
-|------|-------------|------|
-| 사무소 | `workspaces` | 최상위 테넌트. `plan`(free/team/pro), `trial_ends_at`, `billing_customer_id`. |
-| 직원 | `members` | workspace 사용자. `role`: owner/staff, `status`: active/inactive, `invited_email`(초대). |
-| 거래처 | `clients` | 사무소가 수임한 사업자(고객사). |
-| 담당 배정 | `client_assignments` | 직원 ↔ 거래처 N:N. staff 쓰기 권한의 기준. |
-| 신고 | `filing_tasks` | 부가세·종소세·법인세 등 신고/마감 업무. `status`, `docs_status`. |
-| 제출서류 체크리스트 | `expected_documents` | 신고별 필요 서류 + 수취 여부(누락 체크). |
-| 서류 | `documents` | 수집 파일. `source`(upload/email/kakao/codef), AI 분류 메타. |
-| 분류 학습 이력 | `classification_history` | ★RAG 학습 루프. 확정/교정된 분류 누적. **워크스페이스 외부로 절대 노출 금지.** |
-| AI 사용량 | `ai_usage` | ★마진 보호. 워크스페이스·월별 토큰/원가 집계. owner 읽기 전용. |
-| 리마인더 | `reminders` | 거래처 대상 발송 기록(email/inapp/kakao/sms). |
-| 인앱 알림 | `notifications` | 직원별 알림. 본인 것만 조회/수정. |
-| 감사 로그 | `audit_logs` | 행위 추적. owner 읽기 전용, 기록은 서비스 역할. |
-| 결제 이벤트 | `billing_events` | 결제 웹훅 원본. owner 읽기 전용. |
-| 과세유형 | `tax_type` | `general`(일반), `simplified`(간이), `exempt`(면세), `corporate`(법인). |
+| 용어                | 코드 식별자 (테이블)     | 설명                                                                                     |
+| ------------------- | ------------------------ | ---------------------------------------------------------------------------------------- |
+| 사무소              | `workspaces`             | 최상위 테넌트. `plan`(free/team/pro), `trial_ends_at`, `billing_customer_id`.            |
+| 직원                | `members`                | workspace 사용자. `role`: owner/staff, `status`: active/inactive, `invited_email`(초대). |
+| 거래처              | `clients`                | 사무소가 수임한 사업자(고객사).                                                          |
+| 담당 배정           | `client_assignments`     | 직원 ↔ 거래처 N:N. staff 쓰기 권한의 기준.                                               |
+| 신고                | `filing_tasks`           | 부가세·종소세·법인세 등 신고/마감 업무. `status`, `docs_status`.                         |
+| 제출서류 체크리스트 | `expected_documents`     | 신고별 필요 서류 + 수취 여부(누락 체크).                                                 |
+| 서류                | `documents`              | 수집 파일. `source`(upload/email/kakao/codef), AI 분류 메타.                             |
+| 분류 학습 이력      | `classification_history` | ★RAG 학습 루프. 확정/교정된 분류 누적. **워크스페이스 외부로 절대 노출 금지.**           |
+| AI 사용량           | `ai_usage`               | ★마진 보호. 워크스페이스·월별 토큰/원가 집계. owner 읽기 전용.                           |
+| 리마인더            | `reminders`              | 거래처 대상 발송 기록(email/inapp/kakao/sms).                                            |
+| 인앱 알림           | `notifications`          | 직원별 알림. 본인 것만 조회/수정.                                                        |
+| 감사 로그           | `audit_logs`             | 행위 추적. owner 읽기 전용, 기록은 서비스 역할.                                          |
+| 결제 이벤트         | `billing_events`         | 결제 웹훅 원본. owner 읽기 전용. `event_key` 유니크로 멱등.                              |
+| 결제 계정           | `billing_accounts`       | ★빌링키 등 민감 결제정보. **service_role 전용**(authenticated 권한 없음).                |
+| 청구 내역           | `payments`               | 결제/환불 이력(영수증). owner 읽기 전용, 기록은 service_role.                            |
+| 과세유형            | `tax_type`               | `general`(일반), `simplified`(간이), `exempt`(면세), `corporate`(법인).                  |
 
 모든 테이블은 `id uuid pk`, `workspace_id`, `created_at`, `updated_at`를 가진다.
 
@@ -85,7 +87,8 @@ supabase/              # config.toml + migrations/
      - 읽기: `workspace_id = current_workspace_id()` (workspace 전원 읽기).
      - 쓰기(owner): `... and is_owner()`.
      - 쓰기(staff 범위): `... and (is_owner() or is_assigned_to_client(client_id))`.
-     - owner 전용 조회(`ai_usage`/`audit_logs`/`billing_events`): `... and is_owner()`, 기록(insert)은 `service_role` 전용(RLS 우회).
+     - owner 전용 조회(`ai_usage`/`audit_logs`/`billing_events`/`payments`): `... and is_owner()`, 기록(insert)은 `service_role` 전용(RLS 우회).
+     - `billing_accounts`(빌링키 등 민감정보): authenticated 정책/권한 **없음** — service_role 전용. 화면 표시는 `workspaces`의 카드 브랜드/끝 4자리만.
      - `classification_history`: `select`은 `workspace_id = current_workspace_id()`로 **반드시 자기 워크스페이스로 한정**.
      - `notifications`: 본인(`member_id = current_member_id()`) 것만.
 
@@ -122,18 +125,18 @@ supabase/              # config.toml + migrations/
 
 ## 5. 자주 쓰는 명령
 
-| 명령 | 설명 |
-|------|------|
-| `pnpm dev` | 개발 서버 |
-| `pnpm build` / `pnpm start` | 프로덕션 빌드/실행 |
-| `pnpm typecheck` | 타입 검사 (`tsc --noEmit`) |
-| `pnpm lint` / `pnpm format` | 린트 / 포맷 |
-| `pnpm db:start` / `pnpm db:stop` | 로컬 Supabase 시작/정지 |
-| `pnpm db:reset` | 마이그레이션 재적용(로컬 DB 초기화) |
-| `pnpm db:diff` | 스키마 변경 → 새 마이그레이션 생성 |
-| `pnpm db:types` | DB → TypeScript 타입 재생성 (로컬 Supabase 필요) |
-| `pnpm db:test` | RLS pgTAP 테스트 실행 (`supabase test db`, Docker) |
-| `pnpm test:rls:local` | Docker 없이 로컬 Postgres+pgTAP로 RLS 테스트 |
+| 명령                             | 설명                                               |
+| -------------------------------- | -------------------------------------------------- |
+| `pnpm dev`                       | 개발 서버                                          |
+| `pnpm build` / `pnpm start`      | 프로덕션 빌드/실행                                 |
+| `pnpm typecheck`                 | 타입 검사 (`tsc --noEmit`)                         |
+| `pnpm lint` / `pnpm format`      | 린트 / 포맷                                        |
+| `pnpm db:start` / `pnpm db:stop` | 로컬 Supabase 시작/정지                            |
+| `pnpm db:reset`                  | 마이그레이션 재적용(로컬 DB 초기화)                |
+| `pnpm db:diff`                   | 스키마 변경 → 새 마이그레이션 생성                 |
+| `pnpm db:types`                  | DB → TypeScript 타입 재생성 (로컬 Supabase 필요)   |
+| `pnpm db:test`                   | RLS pgTAP 테스트 실행 (`supabase test db`, Docker) |
+| `pnpm test:rls:local`            | Docker 없이 로컬 Postgres+pgTAP로 RLS 테스트       |
 
 ## 6. 데이터베이스 & RLS 테스트
 

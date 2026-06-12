@@ -15,6 +15,7 @@ import {
   type ClientFormValues,
 } from "@/lib/clients/schemas";
 import { assertOwner, requireActor as getActor } from "@/lib/auth/guards";
+import { assertClientCapacity } from "@/lib/billing/gating";
 import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 
@@ -68,6 +69,7 @@ function duplicateError(name: string): ActionException {
 export const createClientAction = action(createClientSchema, async (values) => {
   const session = await getActor();
   assertOwner(session); // RLS reserves client creation for owners.
+  await assertClientCapacity(1); // plan limit (free = 거래처 10건)
   const supabase = await createClient();
   const row = toClientRow(values);
 
@@ -260,6 +262,7 @@ export type BulkImportResult = {
 export const bulkImportClientsAction = action(bulkImportSchema, async ({ rows }) => {
   const session = await getActor();
   assertOwner(session);
+  await assertClientCapacity(rows.length); // plan limit covers the whole batch
   const supabase = await createClient();
 
   const result: BulkImportResult = { inserted: 0, failed: [] };

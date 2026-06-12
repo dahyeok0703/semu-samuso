@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { action, ActionException } from "@/lib/actions/safe-action";
 import { logAudit } from "@/lib/audit";
 import { requireActor as getActor } from "@/lib/auth/guards";
+import { assertIntegrationEnabled } from "@/lib/billing/gating";
 import { getSession } from "@/lib/auth/session";
 import {
   markNotificationSchema,
@@ -19,6 +20,8 @@ import { createClient } from "@/lib/supabase/server";
 // ---------------------------------------------------------------------------
 export const sendRemindersAction = action(sendRemindersSchema, async ({ taskIds, channels }) => {
   const session = await getActor();
+  // 카카오 알림톡은 Pro 플랜 전용 연동 (미허용 시 FORBIDDEN).
+  if (channels.includes("kakao")) await assertIntegrationEnabled("kakao");
   const supabase = await createClient();
 
   // Non-owners may only send for clients they are assigned to.
@@ -80,6 +83,7 @@ export const updateReminderSettingsAction = action(
     if (session.member.role !== "owner") {
       throw new ActionException("FORBIDDEN", "리마인더 설정은 대표(owner)만 변경할 수 있습니다.");
     }
+    if (channels.includes("kakao")) await assertIntegrationEnabled("kakao");
     const supabase = await createClient();
 
     const payload: {

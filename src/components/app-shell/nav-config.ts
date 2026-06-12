@@ -3,6 +3,7 @@ import {
   Building2,
   CalendarCheck,
   CalendarDays,
+  CreditCard,
   FileSignature,
   FileText,
   LayoutDashboard,
@@ -85,6 +86,12 @@ export const secondaryNavItems: NavItem[] = [
     href: "/audit",
     icon: ScrollText,
     description: "변경 이력 (대표 전용)",
+  },
+  {
+    title: "구독·결제",
+    href: "/billing",
+    icon: CreditCard,
+    description: "플랜·결제수단·청구 내역 (대표 전용)",
   },
   {
     title: "설정",

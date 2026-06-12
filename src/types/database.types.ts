@@ -6,13 +6,7 @@
  *   pnpm db:types        (supabase gen types typescript --local > this file)
  */
 
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[];
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type WorkspacePlan = "free" | "team" | "pro";
 export type MemberRole = "owner" | "staff";
@@ -26,6 +20,7 @@ export type DocumentStatus = "pending_review" | "confirmed";
 export type ReminderChannel = "email" | "inapp" | "kakao" | "sms";
 export type ReminderStatus = "queued" | "sent" | "failed";
 export type InvitationStatus = "pending" | "accepted" | "revoked";
+export type SubscriptionStatus = "none" | "trialing" | "active" | "past_due" | "canceled";
 
 type WorkspaceFk<Name extends string> = {
   foreignKeyName: Name;
@@ -45,6 +40,13 @@ export type Database = {
           trial_ends_at: string | null;
           billing_customer_id: string | null;
           onboarded_at: string | null;
+          subscription_status: SubscriptionStatus;
+          billing_seats: number;
+          current_period_end: string | null;
+          grace_until: string | null;
+          cancel_at_period_end: boolean;
+          card_brand: string | null;
+          card_last4: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -55,6 +57,13 @@ export type Database = {
           trial_ends_at?: string | null;
           billing_customer_id?: string | null;
           onboarded_at?: string | null;
+          subscription_status?: SubscriptionStatus;
+          billing_seats?: number;
+          current_period_end?: string | null;
+          grace_until?: string | null;
+          cancel_at_period_end?: boolean;
+          card_brand?: string | null;
+          card_last4?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -65,6 +74,13 @@ export type Database = {
           trial_ends_at?: string | null;
           billing_customer_id?: string | null;
           onboarded_at?: string | null;
+          subscription_status?: SubscriptionStatus;
+          billing_seats?: number;
+          current_period_end?: string | null;
+          grace_until?: string | null;
+          cancel_at_period_end?: boolean;
+          card_brand?: string | null;
+          card_last4?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -616,6 +632,7 @@ export type Database = {
           id: string;
           workspace_id: string;
           type: string;
+          event_key: string | null;
           raw: Json;
           created_at: string;
           updated_at: string;
@@ -624,6 +641,7 @@ export type Database = {
           id?: string;
           workspace_id: string;
           type: string;
+          event_key?: string | null;
           raw?: Json;
           created_at?: string;
           updated_at?: string;
@@ -632,11 +650,108 @@ export type Database = {
           id?: string;
           workspace_id?: string;
           type?: string;
+          event_key?: string | null;
           raw?: Json;
           created_at?: string;
           updated_at?: string;
         };
         Relationships: [WorkspaceFk<"billing_events_workspace_id_fkey">];
+      };
+      billing_accounts: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          provider: string;
+          billing_key: string | null;
+          customer_key: string | null;
+          subscription_id: string | null;
+          plan: WorkspacePlan | null;
+          seats: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          provider?: string;
+          billing_key?: string | null;
+          customer_key?: string | null;
+          subscription_id?: string | null;
+          plan?: WorkspacePlan | null;
+          seats?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          workspace_id?: string;
+          provider?: string;
+          billing_key?: string | null;
+          customer_key?: string | null;
+          subscription_id?: string | null;
+          plan?: WorkspacePlan | null;
+          seats?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [WorkspaceFk<"billing_accounts_workspace_id_fkey">];
+      };
+      payments: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          provider: string;
+          provider_payment_id: string | null;
+          status: string;
+          plan: WorkspacePlan | null;
+          seats: number | null;
+          amount: number;
+          currency: string;
+          order_name: string | null;
+          receipt_url: string | null;
+          failure_reason: string | null;
+          paid_at: string | null;
+          raw: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          provider?: string;
+          provider_payment_id?: string | null;
+          status?: string;
+          plan?: WorkspacePlan | null;
+          seats?: number | null;
+          amount?: number;
+          currency?: string;
+          order_name?: string | null;
+          receipt_url?: string | null;
+          failure_reason?: string | null;
+          paid_at?: string | null;
+          raw?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          workspace_id?: string;
+          provider?: string;
+          provider_payment_id?: string | null;
+          status?: string;
+          plan?: WorkspacePlan | null;
+          seats?: number | null;
+          amount?: number;
+          currency?: string;
+          order_name?: string | null;
+          receipt_url?: string | null;
+          failure_reason?: string | null;
+          paid_at?: string | null;
+          raw?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [WorkspaceFk<"payments_workspace_id_fkey">];
       };
       reminder_settings: {
         Row: {
@@ -725,6 +840,7 @@ export type Database = {
       document_status: DocumentStatus;
       reminder_channel: ReminderChannel;
       reminder_status: ReminderStatus;
+      subscription_status: SubscriptionStatus;
     };
     CompositeTypes: Record<never, never>;
   };
@@ -745,3 +861,5 @@ export type Reminder = Tables["reminders"]["Row"];
 export type Notification = Tables["notifications"]["Row"];
 export type AuditLog = Tables["audit_logs"]["Row"];
 export type BillingEvent = Tables["billing_events"]["Row"];
+export type BillingAccount = Tables["billing_accounts"]["Row"];
+export type Payment = Tables["payments"]["Row"];

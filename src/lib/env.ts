@@ -43,6 +43,13 @@ const serverSchema = z.object({
   // Optional: shared secret protecting the daily reminder cron route.
   CRON_SECRET: z.string().optional(),
 
+  // Optional: PortOne v2 billing (정기결제, TossPayments PG). Without these the
+  // billing UI shows "준비중" and the app stays fully usable (dev/internal).
+  PORTONE_API_SECRET: z.string().optional(), // V2 API secret (server-only)
+  PORTONE_WEBHOOK_SECRET: z.string().optional(), // Standard Webhooks signing secret
+  NEXT_PUBLIC_PORTONE_STORE_ID: z.string().optional(), // store-... (browser SDK)
+  NEXT_PUBLIC_PORTONE_CHANNEL_KEY: z.string().optional(), // TossPayments billing channel
+
   // Public site URL — used to build auth redirect/callback links.
   NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
 
@@ -53,6 +60,8 @@ const clientSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: serverSchema.shape.NEXT_PUBLIC_SUPABASE_URL,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: serverSchema.shape.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   NEXT_PUBLIC_SITE_URL: serverSchema.shape.NEXT_PUBLIC_SITE_URL,
+  NEXT_PUBLIC_PORTONE_STORE_ID: serverSchema.shape.NEXT_PUBLIC_PORTONE_STORE_ID,
+  NEXT_PUBLIC_PORTONE_CHANNEL_KEY: serverSchema.shape.NEXT_PUBLIC_PORTONE_CHANNEL_KEY,
 });
 
 const isServer = typeof window === "undefined";
@@ -68,6 +77,8 @@ function parseEnv() {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+    NEXT_PUBLIC_PORTONE_STORE_ID: process.env.NEXT_PUBLIC_PORTONE_STORE_ID,
+    NEXT_PUBLIC_PORTONE_CHANNEL_KEY: process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY,
     ...(isServer
       ? {
           SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -84,6 +95,8 @@ function parseEnv() {
           SOLAPI_PFID: process.env.SOLAPI_PFID,
           SOLAPI_KAKAO_TEMPLATE_ID: process.env.SOLAPI_KAKAO_TEMPLATE_ID,
           CRON_SECRET: process.env.CRON_SECRET,
+          PORTONE_API_SECRET: process.env.PORTONE_API_SECRET,
+          PORTONE_WEBHOOK_SECRET: process.env.PORTONE_WEBHOOK_SECRET,
           NODE_ENV: process.env.NODE_ENV,
         }
       : {}),
@@ -118,11 +131,23 @@ export const features = {
   /** KakaoTalk 알림톡 available (needs Solapi + channel id + template id). */
   kakao: Boolean(
     env.SOLAPI_API_KEY &&
-      env.SOLAPI_API_SECRET &&
-      env.SOLAPI_SENDER &&
-      env.SOLAPI_PFID &&
-      env.SOLAPI_KAKAO_TEMPLATE_ID,
+    env.SOLAPI_API_SECRET &&
+    env.SOLAPI_SENDER &&
+    env.SOLAPI_PFID &&
+    env.SOLAPI_KAKAO_TEMPLATE_ID,
   ),
+  /**
+   * PortOne billing available. Needs the server API secret + the browser SDK
+   * identifiers. Off → billing UI shows "준비중", subscriptions disabled, but the
+   * core app stays fully usable (graceful degradation).
+   */
+  billing: Boolean(
+    env.PORTONE_API_SECRET &&
+    env.NEXT_PUBLIC_PORTONE_STORE_ID &&
+    env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY,
+  ),
+  /** Webhook signature verification possible (PortOne webhook secret present). */
+  billingWebhook: Boolean(env.PORTONE_WEBHOOK_SECRET),
 } as const;
 
 /** Supabase Storage bucket holding collected client documents. */

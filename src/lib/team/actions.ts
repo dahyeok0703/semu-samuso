@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import { action, ActionException } from "@/lib/actions/safe-action";
 import { logAudit } from "@/lib/audit";
 import { requireOwner } from "@/lib/auth/guards";
+import { assertSeatCapacity } from "@/lib/billing/gating";
 import { env } from "@/lib/env";
 import { sendRawEmail } from "@/lib/messaging/channels";
 import {
@@ -68,6 +69,7 @@ async function activeOwnerCount(supabase: SupabaseServer): Promise<number> {
 // ---------------------------------------------------------------------------
 export const inviteMemberAction = action(inviteMemberSchema, async ({ email }) => {
   const session = await requireOwner();
+  await assertSeatCapacity(1); // plan seat limit (free = 1인)
   const supabase = await createClient();
   const token = newToken();
 
@@ -210,6 +212,11 @@ export const updateMemberStatusAction = action(
       (await activeOwnerCount(supabase)) <= 1
     ) {
       throw new ActionException("CONFLICT", "최소 한 명의 활성 대표가 필요합니다.");
+    }
+
+    // Re-activating a member consumes a seat — enforce the plan limit.
+    if (status === "active" && target.status === "inactive") {
+      await assertSeatCapacity(1);
     }
 
     const { error } = await supabase.from("members").update({ status }).eq("id", memberId);
