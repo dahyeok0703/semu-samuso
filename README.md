@@ -151,6 +151,12 @@ scripts           Docker 없이 RLS 테스트하는 로컬 PG 하니스
 ## 현재 구현 상태
 
 - ✅ 앱 셸(반응형 사이드바 + 헤더 + 모바일 시트 내비)
+- ✅ **출시 전 보안/운영 하드닝**: 보안 헤더(CSP·HSTS·X-Frame-Options·nosniff·Referrer·
+  Permissions, `X-Powered-By` 제거), 레이트리밋(인증·업로드·AI·웹훅, IP·워크스페이스 단위),
+  파일 업로드 3중 검증(브라우저+서버액션+Storage 버킷 타입·용량), Storage private+서명 URL,
+  거래처 종료/삭제 시 개인정보 파기(파일+이력), Sentry 연동(키 없으면 no-op)+구조화 로깅,
+  비밀 `NEXT_PUBLIC_` 노출 부팅 가드, 권한 우회/테넌트 격리 통합 테스트(pgTAP 66)
+  · 📄 `docs/security-checklist.md`
 - ✅ **공개 마케팅 사이트 + 법적 페이지 + SEO**: 랜딩(`/`, 히어로·기능·사회적 증거 자리·가격
   요약·CTA), `/features`·`/pricing`·`/faq`(FAQ 구조화 데이터), 법적 문서(`/legal/terms`,
   `privacy`(처리 항목·목적·보유기간 표), `refund`, `third-party`(제3자 제공·위탁)) — 모두

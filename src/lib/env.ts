@@ -57,6 +57,17 @@ const serverSchema = z.object({
   // Public site URL — used to build auth redirect/callback links.
   NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
 
+  // Optional: Sentry error monitoring. Without a DSN, reporting is a no-op and
+  // errors are written to the structured logger only.
+  SENTRY_DSN: z.string().optional(),
+  NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
+
+  // Optional: disable rate limiting (e.g. for local load tests). Defaults on.
+  RATE_LIMIT_DISABLED: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((v) => v === "true"),
+
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 });
 
@@ -66,6 +77,7 @@ const clientSchema = z.object({
   NEXT_PUBLIC_SITE_URL: serverSchema.shape.NEXT_PUBLIC_SITE_URL,
   NEXT_PUBLIC_PORTONE_STORE_ID: serverSchema.shape.NEXT_PUBLIC_PORTONE_STORE_ID,
   NEXT_PUBLIC_PORTONE_CHANNEL_KEY: serverSchema.shape.NEXT_PUBLIC_PORTONE_CHANNEL_KEY,
+  NEXT_PUBLIC_SENTRY_DSN: serverSchema.shape.NEXT_PUBLIC_SENTRY_DSN,
 });
 
 const isServer = typeof window === "undefined";
@@ -83,6 +95,7 @@ function parseEnv() {
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
     NEXT_PUBLIC_PORTONE_STORE_ID: process.env.NEXT_PUBLIC_PORTONE_STORE_ID,
     NEXT_PUBLIC_PORTONE_CHANNEL_KEY: process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY,
+    NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
     ...(isServer
       ? {
           SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -100,6 +113,8 @@ function parseEnv() {
           SOLAPI_KAKAO_TEMPLATE_ID: process.env.SOLAPI_KAKAO_TEMPLATE_ID,
           CRON_SECRET: process.env.CRON_SECRET,
           SUPERUSER_EMAILS: process.env.SUPERUSER_EMAILS,
+          SENTRY_DSN: process.env.SENTRY_DSN,
+          RATE_LIMIT_DISABLED: process.env.RATE_LIMIT_DISABLED,
           PORTONE_API_SECRET: process.env.PORTONE_API_SECRET,
           PORTONE_WEBHOOK_SECRET: process.env.PORTONE_WEBHOOK_SECRET,
           NODE_ENV: process.env.NODE_ENV,
@@ -153,7 +168,27 @@ export const features = {
   ),
   /** Webhook signature verification possible (PortOne webhook secret present). */
   billingWebhook: Boolean(env.PORTONE_WEBHOOK_SECRET),
+  /** Sentry error monitoring active (server DSN present). Off → no-op + logs. */
+  sentry: Boolean(env.SENTRY_DSN),
 } as const;
+
+/**
+ * Defence-in-depth: ensure no server secret is accidentally exposed to the
+ * browser via a `NEXT_PUBLIC_` name. Public vars must be non-sensitive
+ * (publishable keys, URLs). Runs on the server at boot.
+ */
+if (isServer) {
+  const PUBLIC_SECRET_HINTS = /(SECRET|SERVICE_ROLE|PASS|PRIVATE|TOKEN|API_KEY)$/;
+  const leaked = Object.keys(process.env).filter(
+    (k) => k.startsWith("NEXT_PUBLIC_") && PUBLIC_SECRET_HINTS.test(k),
+  );
+  if (leaked.length > 0) {
+    throw new Error(
+      `❌ 보안: NEXT_PUBLIC_ 접두사로 노출된 비밀 의심 변수: ${leaked.join(", ")}\n` +
+        `비밀 값은 절대 NEXT_PUBLIC_ 로 노출하지 마세요(서버 전용 변수로 옮기세요).`,
+    );
+  }
+}
 
 /** Internal superusers (cross-workspace margin monitor). Parsed once. */
 export const SUPERUSER_EMAILS: string[] = (env.SUPERUSER_EMAILS ?? "")

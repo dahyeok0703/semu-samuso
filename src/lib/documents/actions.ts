@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import { action, ActionException } from "@/lib/actions/safe-action";
 import type { DocType } from "@/lib/ai/doc-types";
@@ -15,6 +16,9 @@ import {
   registerDocumentSchema,
 } from "@/lib/documents/schemas";
 import { DOCUMENTS_BUCKET } from "@/lib/env";
+import { RATE_LIMITS } from "@/lib/security/rate-limit";
+import { guard } from "@/lib/security/request";
+import { isAllowedMime, isValidObjectPath } from "@/lib/security/upload";
 import { createClient } from "@/lib/supabase/server";
 import type { SessionContext } from "@/lib/auth/session";
 import type { Json } from "@/types/database.types";
@@ -84,9 +88,51 @@ async function syncTaskDocsStatus(supabase: SupabaseServer, taskId: string): Pro
 // ---------------------------------------------------------------------------
 // Register an uploaded document (storage object already created client-side).
 // ---------------------------------------------------------------------------
+/**
+ * Issue a short-lived signed URL to view a private document. The bucket is
+ * private; Storage RLS ensures the signing client can only sign objects in its
+ * own workspace, so this never exposes another tenant's files.
+ */
+export const getDocumentUrlAction = action(
+  z.object({ documentId: z.string().uuid() }),
+  async ({ documentId }) => {
+    await getActor();
+    const supabase = await createClient();
+    const { data: doc } = await supabase
+      .from("documents")
+      .select("file_path")
+      .eq("id", documentId)
+      .maybeSingle();
+    if (!doc) throw new ActionException("NOT_FOUND", "자료를 찾을 수 없습니다.");
+
+    const { data, error } = await supabase.storage
+      .from(DOCUMENTS_BUCKET)
+      .createSignedUrl(doc.file_path, 60); // 60s TTL
+    if (error || !data) throw new ActionException("INTERNAL", "파일 링크를 생성하지 못했습니다.");
+    return { url: data.signedUrl };
+  },
+);
+
 export const registerDocumentAction = action(registerDocumentSchema, async (input) => {
   const session = await getActor();
   await assertCanWriteClient(session, input.clientId);
+
+  // Upload abuse guard (per workspace).
+  if (!guard(`upload:${session.workspace.id}`, RATE_LIMITS.upload).ok) {
+    throw new ActionException(
+      "RATE_LIMITED",
+      "업로드가 너무 많습니다. 잠시 후 다시 시도해 주세요.",
+    );
+  }
+  // Defence-in-depth: the object path must live under this workspace prefix
+  // (Storage RLS also enforces this) and the MIME type must be allowed.
+  if (!isValidObjectPath(input.filePath, session.workspace.id)) {
+    throw new ActionException("FORBIDDEN", "잘못된 파일 경로입니다.");
+  }
+  if (!isAllowedMime(input.contentType)) {
+    throw new ActionException("VALIDATION", "허용되지 않는 파일 형식입니다.");
+  }
+
   const supabase = await createClient();
 
   const { data, error } = await supabase

@@ -11,6 +11,8 @@ import {
   updatePasswordSchema,
 } from "@/lib/auth/schemas";
 import { env } from "@/lib/env";
+import { RATE_LIMITS } from "@/lib/security/rate-limit";
+import { clientIpFrom, guard } from "@/lib/security/request";
 import { createClient } from "@/lib/supabase/server";
 
 /** Resolve the public origin for building auth redirect links. */
@@ -22,7 +24,16 @@ async function getOrigin(): Promise<string> {
   return `${proto}://${host}`;
 }
 
+/** Throttle auth attempts per client IP (credential stuffing / spam guard). */
+async function assertAuthRateLimit(scope: string): Promise<void> {
+  const ip = clientIpFrom(await headers());
+  if (!guard(`auth:${scope}:${ip}`, RATE_LIMITS.auth).ok) {
+    throw new ActionException("RATE_LIMITED", "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.");
+  }
+}
+
 export const signUpAction = action(signupSchema, async (input) => {
+  await assertAuthRateLimit("signup");
   const supabase = await createClient();
   const origin = await getOrigin();
 
@@ -50,6 +61,7 @@ export const signUpAction = action(signupSchema, async (input) => {
 });
 
 export const signInAction = action(loginSchema, async (input) => {
+  await assertAuthRateLimit("login");
   const supabase = await createClient();
 
   const { error } = await supabase.auth.signInWithPassword({
@@ -65,6 +77,7 @@ export const signInAction = action(loginSchema, async (input) => {
 });
 
 export const requestPasswordResetAction = action(resetPasswordSchema, async (input) => {
+  await assertAuthRateLimit("reset");
   const supabase = await createClient();
   const origin = await getOrigin();
 

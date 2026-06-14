@@ -5,6 +5,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "client.status_changed": "거래처 상태 변경",
   "client.ended": "거래처 해지",
   "client.deleted": "거래처 삭제",
+  "client.data_purged": "거래처 자료 파기",
   "client.assignments_set": "담당자 변경",
   "client.bulk_imported": "거래처 일괄 등록",
   "client.bulk_reassigned": "거래처 일괄 재배정",

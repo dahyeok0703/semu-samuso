@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 import { getPaymentProvider } from "@/lib/billing/index";
 import { applyVerifiedWebhook } from "@/lib/billing/service";
 import { env, features } from "@/lib/env";
+import { captureException, captureMessage } from "@/lib/observability/report";
+import { RATE_LIMITS } from "@/lib/security/rate-limit";
+import { clientIpFrom, guard } from "@/lib/security/request";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -27,6 +30,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, note: "billing disabled" });
   }
 
+  // Per-IP rate limit (abuse / replay flood protection).
+  const ip = clientIpFrom(request.headers);
+  if (!guard(`webhook:${ip}`, RATE_LIMITS.webhook).ok) {
+    return NextResponse.json({ ok: false, error: "rate limited" }, { status: 429 });
+  }
+
   const rawBody = await request.text();
   const headerBag: Record<string, string> = {};
   request.headers.forEach((value, key) => {
@@ -47,6 +56,10 @@ export async function POST(request: Request) {
 
   const verify = provider.verifyWebhook(headerBag, rawBody);
   if (!verify.ok) {
+    // Signature failure is a security-relevant event — record it.
+    void captureMessage("portone webhook signature rejected", {
+      tags: { ip, reason: verify.reason },
+    });
     return NextResponse.json({ ok: false, error: verify.reason }, { status: 401 });
   }
 
@@ -62,7 +75,7 @@ export async function POST(request: Request) {
     const outcome = await applyVerifiedWebhook(admin, verify);
     return NextResponse.json({ ok: true, ...outcome });
   } catch (error) {
-    console.error("[portone] webhook processing failed:", error);
+    await captureException(error, { tags: { route: "webhooks/portone" } });
     // 500 → provider will retry; idempotency makes retries safe.
     return NextResponse.json({ ok: false, error: "processing error" }, { status: 500 });
   }

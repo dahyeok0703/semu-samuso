@@ -17,6 +17,7 @@ import {
 import { assertOwner, requireActor as getActor } from "@/lib/auth/guards";
 import { assertClientCapacity } from "@/lib/billing/gating";
 import { getSession } from "@/lib/auth/session";
+import { purgeClientStorage } from "@/lib/documents/storage";
 import { createClient } from "@/lib/supabase/server";
 
 const blankToNull = (value: string): string | null => {
@@ -184,6 +185,10 @@ export const deleteClientAction = action(deleteClientSchema, async ({ id }) => {
     .eq("id", id)
     .maybeSingle();
 
+  // ★개인정보 파기: 거래처 행 삭제는 documents/이력 행을 cascade 로 지우지만 Storage
+  // 파일은 남으므로 먼저 명시적으로 제거한다.
+  const removedFiles = await purgeClientStorage(supabase, session.workspace.id, id);
+
   const { error } = await supabase.from("clients").delete().eq("id", id);
   if (error) throw new ActionException("INTERNAL", "거래처를 삭제하지 못했습니다.");
 
@@ -193,11 +198,45 @@ export const deleteClientAction = action(deleteClientSchema, async ({ id }) => {
     action: "client.deleted",
     targetTable: "clients",
     targetId: id,
-    meta: { biz_name: existing?.biz_name ?? null },
+    meta: { biz_name: existing?.biz_name ?? null, removed_files: removedFiles },
   });
 
   revalidatePath("/clients");
   return { id };
+});
+
+/**
+ * 거래처 종료 시 개인정보 파기: 거래처 record 는 유지하되 수취 자료(파일+행)와 분류
+ * 학습 이력을 영구 삭제한다. owner 전용.
+ */
+export const purgeClientDataAction = action(deleteClientSchema, async ({ id }) => {
+  const session = await getActor();
+  assertOwner(session);
+  const supabase = await createClient();
+
+  // 권한·소속 확인 (RLS 로도 보호되나 친절한 에러).
+  const { data: client } = await supabase
+    .from("clients")
+    .select("id, biz_name")
+    .eq("id", id)
+    .maybeSingle();
+  if (!client) throw new ActionException("NOT_FOUND", "거래처를 찾을 수 없습니다.");
+
+  const removedFiles = await purgeClientStorage(supabase, session.workspace.id, id);
+  await supabase.from("documents").delete().eq("client_id", id);
+  await supabase.from("classification_history").delete().eq("client_id", id);
+
+  await logAudit({
+    workspaceId: session.workspace.id,
+    actorMemberId: session.member.id,
+    action: "client.data_purged",
+    targetTable: "clients",
+    targetId: id,
+    meta: { biz_name: client.biz_name, removed_files: removedFiles },
+  });
+
+  revalidatePath(`/clients/${id}`);
+  return { id, removedFiles };
 });
 
 // ---------------------------------------------------------------------------

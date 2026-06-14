@@ -41,6 +41,7 @@ import {
 } from "@/lib/documents/actions";
 import type { ClientDocument, TaskOption } from "@/lib/documents/queries";
 import { DOCUMENTS_BUCKET } from "@/lib/env";
+import { validateUpload } from "@/lib/security/upload";
 import { createClient } from "@/lib/supabase/client";
 
 const NO_TASK = "none";
@@ -288,6 +289,17 @@ export function DocumentsPanel({
 
   async function processFile(entry: UploadEntry) {
     const supabase = createClient();
+
+    // Client-side type/size guard (Storage bucket + server action enforce too).
+    const check = validateUpload({
+      contentType: entry.file.type || "application/octet-stream",
+      size: entry.file.size,
+    });
+    if (!check.ok) {
+      update(entry.key, { status: "error", error: check.reason });
+      return;
+    }
+
     update(entry.key, { status: "uploading", error: undefined });
 
     const path = `${workspaceId}/${clientId}/${crypto.randomUUID()}-${sanitizeName(entry.file.name)}`;

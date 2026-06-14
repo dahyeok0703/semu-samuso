@@ -4,7 +4,10 @@ import { NextResponse } from "next/server";
 import { classifyDocument, AiDisabledError } from "@/lib/ai/classify";
 import { AUTO_CONFIRM_CONFIDENCE } from "@/lib/ai/schema";
 import { getDailyClassifyCount, getMonthlyDocCount } from "@/lib/ai/usage";
+import { captureException } from "@/lib/observability/report";
 import { decideDocQuota } from "@/lib/pricing/quota";
+import { RATE_LIMITS } from "@/lib/security/rate-limit";
+import { clientIpFrom, guard } from "@/lib/security/request";
 import { logAudit } from "@/lib/audit";
 import { getSession } from "@/lib/auth/session";
 import { getClientAssigneeIds } from "@/lib/clients/queries";
@@ -72,6 +75,22 @@ export async function POST(request: Request) {
     if (!assignees.includes(session.member.id)) {
       return json({ ok: false, error: "권한이 없습니다." }, 403);
     }
+  }
+
+  // Burst rate limit: per workspace and per IP (cost + abuse guard).
+  const ip = clientIpFrom(request.headers);
+  if (
+    !guard(`classify:${session.workspace.id}`, RATE_LIMITS.ai).ok ||
+    !guard(`classify-ip:${ip}`, RATE_LIMITS.aiIp).ok
+  ) {
+    return json(
+      {
+        ok: false,
+        code: "RATE_LIMITED",
+        error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.",
+      },
+      429,
+    );
   }
 
   // Per-workspace daily cost guard.
@@ -187,7 +206,9 @@ export async function POST(request: Request) {
     if (error instanceof AiDisabledError) {
       return json({ ok: false, code: "AI_DISABLED", error: error.message }, 503);
     }
-    console.error("[api/classify] failed:", error);
+    await captureException(error, {
+      tags: { route: "api/classify", workspaceId: session.workspace.id },
+    });
     return json({ ok: false, error: "분류에 실패했습니다. 수동으로 분류해 주세요." }, 500);
   }
 }
