@@ -1,0 +1,64 @@
+name: CI
+
+# PR gate: lint + typecheck + unit tests + build, plus RLS/permission pgTAP.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: lint · typecheck · test · build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm lint
+
+      - run: pnpm typecheck
+
+      - run: pnpm test
+
+      - name: Build
+        run: pnpm build
+        env:
+          # Build only needs the core public vars present (no network calls).
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+
+  rls:
+    name: RLS / permission pgTAP
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PostgreSQL + pgTAP + pg_prove
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql postgresql-contrib \
+            postgresql-16-pgtap libtap-parser-sourcehandler-pgtap-perl
+
+      - name: Start PostgreSQL and create runner superuser
+        run: |
+          sudo pg_ctlcluster 16 main start
+          sudo -u postgres psql -c "CREATE ROLE \"$USER\" SUPERUSER LOGIN CREATEDB;"
+
+      - name: Run pgTAP isolation + permission suite
+        run: bash scripts/test-rls-local.sh
+        env:
+          PGHOST: /var/run/postgresql

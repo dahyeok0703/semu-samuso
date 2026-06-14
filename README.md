@@ -13,6 +13,26 @@
 
 자세한 아키텍처·도메인 용어·코드 원칙은 [`CLAUDE.md`](./CLAUDE.md)를 참고하세요.
 
+## ⚡ 5분 셋업 (프로덕션 배포)
+
+1. **Supabase 프로젝트 만들기** — [supabase.com](https://supabase.com) 에서 새 프로젝트
+   생성 → Settings/API 에서 `Project URL`, `anon key`, `service_role key` 확보.
+2. **마이그레이션 적용** — 로컬에서:
+   ```bash
+   pnpm install
+   supabase link --project-ref <YOUR_REF>
+   supabase db push        # 0001 → 0013 적용 (Storage 버킷·RLS 포함)
+   ```
+3. **키 3종(+) 입력** — Vercel 환경변수에 최소 다음을 넣습니다:
+   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+   `SUPABASE_SERVICE_ROLE_KEY` (+ AI/결제까지면 `ANTHROPIC_API_KEY`, `PORTONE_*`).
+4. **배포** — GitHub 저장소를 [Vercel](https://vercel.com) 에 import → Deploy.
+   크론 4종은 `vercel.json` 으로 자동 등록됩니다(`CRON_SECRET` 설정 필요).
+
+> 전체 변수표·Supabase/Vercel/Cron 절차는 [`docs/deployment.md`](./docs/deployment.md),
+> 출시 점검은 [`LAUNCH.md`](./LAUNCH.md) 를 따르세요. 선택 통합(SMTP/Solapi/Sentry)이
+> 없어도 핵심 기능은 정상 동작합니다(graceful degradation).
+
 ## 사전 요구사항
 
 - Node.js 20+ (권장 22)
@@ -137,6 +157,18 @@ pnpm test:rls:local    # scripts/test-rls-local.sh
 워크스페이스 거래처를 수정 불가 ③`classification_history`가 타 워크스페이스에서
 조회 불가 ④owner 전용 조회(ai_usage/audit_logs) ⑤WITH CHECK·service_role 우회.
 
+### 테스트 전체 / CI
+
+```bash
+pnpm lint && pnpm typecheck && pnpm test   # 단위(vitest): filing-rules·웹훅·마진·쿼터·보안 등
+pnpm test:rls:local                        # RLS/권한 통합 pgTAP (66 단언)
+pnpm test:e2e                              # Playwright e2e (테스트 Supabase·확인메일 OFF 필요)
+```
+
+- **CI 게이트**(`.github/workflows/ci.yml`): PR마다 lint·typecheck·test·build + RLS pgTAP.
+- **e2e**(`.github/workflows/e2e.yml`): 수동/주간 — 가입→온보딩→거래처→일정→대시보드
+  플로우(`e2e/`). 자세한 배포는 [`docs/deployment.md`](./docs/deployment.md).
+
 ## 프로젝트 구조
 
 ```
@@ -151,6 +183,10 @@ scripts           Docker 없이 RLS 테스트하는 로컬 PG 하니스
 ## 현재 구현 상태
 
 - ✅ 앱 셸(반응형 사이드바 + 헤더 + 모바일 시트 내비)
+- ✅ **테스트·배포 파이프라인 + 런치 체크리스트**: 단위(vitest 78)+RLS/권한 통합(pgTAP 66)+
+  결제 웹훅/마진/쿼터 + Playwright e2e(가입→온보딩→거래처→일정→대시보드), CI(GitHub Actions:
+  lint·typecheck·test·build + pgTAP, PR 게이트), 배포 가이드(`docs/deployment.md`: 환경변수표·
+  Supabase 마이그레이션·Vercel·Cron 4종), 런치 체크리스트(`LAUNCH.md`), README "5분 셋업"
 - ✅ **출시 전 보안/운영 하드닝**: 보안 헤더(CSP·HSTS·X-Frame-Options·nosniff·Referrer·
   Permissions, `X-Powered-By` 제거), 레이트리밋(인증·업로드·AI·웹훅, IP·워크스페이스 단위),
   파일 업로드 3중 검증(브라우저+서버액션+Storage 버킷 타입·용량), Storage private+서명 URL,

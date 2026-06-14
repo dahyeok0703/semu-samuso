@@ -1,0 +1,46 @@
+name: E2E (Playwright)
+
+# Manual / scheduled e2e against a TEST Supabase project. NOT a PR gate — it
+# needs a live app + test credentials (email confirmation disabled). Provide the
+# repo secrets below, then run from the Actions tab ("Run workflow").
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1" # weekly smoke
+
+jobs:
+  e2e:
+    name: Playwright e2e
+    runs-on: ubuntu-latest
+    # Skip when the test Supabase env isn't configured.
+    if: ${{ vars.E2E_ENABLED == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm test:e2e:install
+
+      - name: Run Playwright
+        run: pnpm test:e2e
+        env:
+          # Point at a deployed test app, or omit to boot `next dev` locally.
+          E2E_BASE_URL: ${{ vars.E2E_BASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
