@@ -40,6 +40,14 @@ const serverSchema = z.object({
   // 알림톡 template id for the docs-reminder template (registered in Kakao).
   SOLAPI_KAKAO_TEMPLATE_ID: z.string().optional(),
 
+  // Optional: CODEF (은행/카드 거래내역 스크래핑 연동). 키 없으면 비활성.
+  CODEF_CLIENT_ID: z.string().optional(),
+  CODEF_CLIENT_SECRET: z.string().optional(),
+  CODEF_PUBLIC_KEY: z.string().optional(),
+
+  // Optional: Solapi delivery-report webhook secret (서명 검증). 없으면 검증 생략(dev).
+  SOLAPI_WEBHOOK_SECRET: z.string().optional(),
+
   // Optional: shared secret protecting the daily reminder cron route.
   CRON_SECRET: z.string().optional(),
 
@@ -111,6 +119,10 @@ function parseEnv() {
           SOLAPI_SENDER: process.env.SOLAPI_SENDER,
           SOLAPI_PFID: process.env.SOLAPI_PFID,
           SOLAPI_KAKAO_TEMPLATE_ID: process.env.SOLAPI_KAKAO_TEMPLATE_ID,
+          CODEF_CLIENT_ID: process.env.CODEF_CLIENT_ID,
+          CODEF_CLIENT_SECRET: process.env.CODEF_CLIENT_SECRET,
+          CODEF_PUBLIC_KEY: process.env.CODEF_PUBLIC_KEY,
+          SOLAPI_WEBHOOK_SECRET: process.env.SOLAPI_WEBHOOK_SECRET,
           CRON_SECRET: process.env.CRON_SECRET,
           SUPERUSER_EMAILS: process.env.SUPERUSER_EMAILS,
           SENTRY_DSN: process.env.SENTRY_DSN,
@@ -170,6 +182,8 @@ export const features = {
   billingWebhook: Boolean(env.PORTONE_WEBHOOK_SECRET),
   /** Sentry error monitoring active (server DSN present). Off → no-op + logs. */
   sentry: Boolean(env.SENTRY_DSN),
+  /** CODEF scraping available globally (env). Workspace settings can also enable. */
+  codef: Boolean(env.CODEF_CLIENT_ID && env.CODEF_CLIENT_SECRET),
 } as const;
 
 /**

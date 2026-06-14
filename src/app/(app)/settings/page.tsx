@@ -1,15 +1,11 @@
 import type { Metadata } from "next";
 
 import { PageHeader } from "@/components/page-header";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { IntegrationsPanel } from "@/app/(app)/settings/_components/integrations-panel";
 import { requireSession } from "@/lib/auth/session";
+import { getIntegrationStatuses } from "@/lib/integrations/settings";
 
 export const metadata: Metadata = { title: "설정" };
 
@@ -24,6 +20,8 @@ function Row({ label, value }: { label: string; value: string }) {
 
 export default async function SettingsPage() {
   const session = await requireSession();
+  const isOwner = session.member.role === "owner";
+  const integrationStatuses = isOwner ? await getIntegrationStatuses(session.workspace.id) : [];
 
   return (
     <div className="space-y-6">
@@ -37,7 +35,10 @@ export default async function SettingsPage() {
         <CardContent>
           <Row label="사무소 이름" value={session.workspace.name} />
           <Separator />
-          <Row label="내 역할" value={session.member.role === "owner" ? "대표 (owner)" : "직원 (staff)"} />
+          <Row
+            label="내 역할"
+            value={session.member.role === "owner" ? "대표 (owner)" : "직원 (staff)"}
+          />
         </CardContent>
       </Card>
 
@@ -52,6 +53,8 @@ export default async function SettingsPage() {
           <Row label="이메일" value={session.email ?? "—"} />
         </CardContent>
       </Card>
+
+      {isOwner ? <IntegrationsPanel statuses={integrationStatuses} /> : null}
     </div>
   );
 }

@@ -22,6 +22,7 @@ export type ReminderStatus = "queued" | "sent" | "failed";
 export type InvitationStatus = "pending" | "accepted" | "revoked";
 export type SubscriptionStatus = "none" | "trialing" | "active" | "past_due" | "canceled";
 export type AiQuotaPolicy = "hardcap" | "overage";
+export type IntegrationProvider = "solapi" | "codef" | "erp_import";
 
 type WorkspaceFk<Name extends string> = {
   foreignKeyName: Name;
@@ -846,6 +847,36 @@ export type Database = {
           },
         ];
       };
+      integration_settings: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          provider: IntegrationProvider;
+          enabled: boolean;
+          config: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          provider: IntegrationProvider;
+          enabled?: boolean;
+          config?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          workspace_id?: string;
+          provider?: IntegrationProvider;
+          enabled?: boolean;
+          config?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [WorkspaceFk<"integration_settings_workspace_id_fkey">];
+      };
       reminder_settings: {
         Row: {
           workspace_id: string;
@@ -935,6 +966,7 @@ export type Database = {
       reminder_status: ReminderStatus;
       subscription_status: SubscriptionStatus;
       ai_quota_policy: AiQuotaPolicy;
+      integration_provider: IntegrationProvider;
     };
     CompositeTypes: Record<never, never>;
   };
@@ -960,3 +992,4 @@ export type Payment = Tables["payments"]["Row"];
 export type AiUsageRowDb = Tables["ai_usage"]["Row"];
 export type MarginFlag = Tables["margin_flags"]["Row"];
 export type ClassificationJob = Tables["classification_jobs"]["Row"];
+export type IntegrationSetting = Tables["integration_settings"]["Row"];

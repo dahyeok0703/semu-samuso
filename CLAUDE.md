@@ -71,6 +71,7 @@ supabase/              # config.toml + migrations/
 | 결제 이벤트         | `billing_events`         | 결제 웹훅 원본. owner 읽기 전용. `event_key` 유니크로 멱등.                              |
 | 결제 계정           | `billing_accounts`       | ★빌링키 등 민감 결제정보. **service_role 전용**(authenticated 권한 없음).                |
 | 청구 내역           | `payments`               | 결제/환불 이력(영수증). owner 읽기 전용, 기록은 service_role.                            |
+| 연동 설정           | `integration_settings`   | ★선택 연동(solapi/codef/erp_import) 워크스페이스별 토글+키. **service_role 전용**.       |
 | 과세유형            | `tax_type`               | `general`(일반), `simplified`(간이), `exempt`(면세), `corporate`(법인).                  |
 
 모든 테이블은 `id uuid pk`, `workspace_id`, `created_at`, `updated_at`를 가진다.

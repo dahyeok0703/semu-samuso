@@ -1,11 +1,11 @@
 import "server-only";
 
-import { createHmac, randomBytes } from "node:crypto";
-
 import type { SupabaseClient } from "@supabase/supabase-js";
 import nodemailer, { type Transporter } from "nodemailer";
 
 import { env, features } from "@/lib/env";
+import { resolveSolapi } from "@/lib/integrations/settings";
+import { solapiSend } from "@/lib/integrations/solapi/client";
 import type { RenderedReminder } from "@/lib/messaging/templates";
 import type { Database } from "@/types/database.types";
 
@@ -88,65 +88,52 @@ async function sendEmail(r: RenderedReminder, to: string | null): Promise<SendRe
   }
 }
 
-// --- Solapi (kakao 알림톡 / SMS) --------------------------------------------
-async function solapiSend(
-  message: Record<string, unknown>,
-): Promise<{ ok: boolean; error?: string }> {
-  const date = new Date().toISOString();
-  const salt = randomBytes(32).toString("hex");
-  const signature = createHmac("sha256", env.SOLAPI_API_SECRET ?? "")
-    .update(date + salt)
-    .digest("hex");
-  try {
-    const res = await fetch("https://api.solapi.com/messages/v4/send", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `HMAC-SHA256 apiKey=${env.SOLAPI_API_KEY}, date=${date}, salt=${salt}, signature=${signature}`,
-      },
-      body: JSON.stringify({ message }),
-    });
-    if (!res.ok) {
-      const body = await res.text();
-      return { ok: false, error: `Solapi ${res.status}: ${body.slice(0, 200)}` };
-    }
-    return { ok: true };
-  } catch (e) {
-    return { ok: false, error: errMessage(e) };
-  }
-}
-
-async function sendKakao(r: RenderedReminder, recipient: SendRecipient): Promise<SendResult> {
+// --- Solapi (kakao 알림톡 / SMS) — per-workspace config via integrations ------
+async function sendKakao(
+  r: RenderedReminder,
+  recipient: SendRecipient,
+  ctx: SendContext,
+): Promise<SendResult> {
+  const solapi = await resolveSolapi(ctx.workspaceId);
   // Missing keys / template / phone → fall back to email so UX isn't broken.
-  if (!features.kakao || !recipient.phone) {
+  if (!solapi.kakaoAvailable || !recipient.phone) {
     const fb = await sendEmail(r, recipient.email);
     return { ...fb, responseNote: "카카오 알림톡 미설정 — 이메일로 대체" };
   }
-  const result = await solapiSend({
+  const result = await solapiSend(solapi.config, {
     to: digits(recipient.phone),
-    from: env.SOLAPI_SENDER,
+    from: solapi.config.sender,
     type: "ATA",
     kakaoOptions: {
-      pfId: env.SOLAPI_PFID,
-      templateId: env.SOLAPI_KAKAO_TEMPLATE_ID,
+      pfId: solapi.config.pfId,
+      templateId: solapi.config.kakaoTemplateId,
       variables: r.kakaoVariables,
       disableSms: false,
     },
   });
-  return result.ok ? sent("kakao") : failed("kakao", result.error ?? "발송 실패");
+  return result.ok
+    ? sent("kakao", result.groupId ? `solapi:${result.groupId}` : null)
+    : failed("kakao", result.error ?? "발송 실패");
 }
 
-async function sendSms(r: RenderedReminder, recipient: SendRecipient): Promise<SendResult> {
-  if (!features.solapi || !recipient.phone) {
+async function sendSms(
+  r: RenderedReminder,
+  recipient: SendRecipient,
+  ctx: SendContext,
+): Promise<SendResult> {
+  const solapi = await resolveSolapi(ctx.workspaceId);
+  if (!solapi.smsAvailable || !recipient.phone) {
     const fb = await sendEmail(r, recipient.email);
     return { ...fb, responseNote: "SMS 미설정 — 이메일로 대체" };
   }
-  const result = await solapiSend({
+  const result = await solapiSend(solapi.config, {
     to: digits(recipient.phone),
-    from: env.SOLAPI_SENDER,
+    from: solapi.config.sender,
     text: r.smsBody,
   });
-  return result.ok ? sent("sms") : failed("sms", result.error ?? "발송 실패");
+  return result.ok
+    ? sent("sms", result.groupId ? `solapi:${result.groupId}` : null)
+    : failed("sms", result.error ?? "발송 실패");
 }
 
 // --- in-app (notifications insert) ------------------------------------------
@@ -190,9 +177,9 @@ export async function sendViaChannel(
     case "email":
       return sendEmail(rendered, recipient.email);
     case "kakao":
-      return sendKakao(rendered, recipient);
+      return sendKakao(rendered, recipient, ctx);
     case "sms":
-      return sendSms(rendered, recipient);
+      return sendSms(rendered, recipient, ctx);
     default:
       return failed(channel, "알 수 없는 채널입니다.");
   }
@@ -219,10 +206,11 @@ export async function sendRawEmail(
   }
 }
 
-/** Channels currently usable given configuration (for UI gating). */
-export function availableChannels(): Channel[] {
+/** Channels currently usable for a workspace (env ⊕ workspace settings). */
+export async function availableChannels(workspaceId: string): Promise<Channel[]> {
   const list: Channel[] = ["inapp", "email"];
-  if (features.kakao) list.push("kakao");
-  if (features.solapi) list.push("sms");
+  const solapi = await resolveSolapi(workspaceId);
+  if (solapi.kakaoAvailable) list.push("kakao");
+  if (solapi.smsAvailable) list.push("sms");
   return list;
 }

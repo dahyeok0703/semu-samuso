@@ -183,6 +183,13 @@ scripts           Docker 없이 RLS 테스트하는 로컬 PG 하니스
 ## 현재 구현 상태
 
 - ✅ 앱 셸(반응형 사이드바 + 헤더 + 모바일 시트 내비)
+- ✅ **선택 외부 연동(어댑터+기능 플래그, `lib/integrations/`)**: 키/계약 없으면 자동 비활성·
+  핵심 동작 무영향. (A) Solapi 알림톡/SMS — 워크스페이스별 키 해석 + 발송결과 콜백
+  `/api/webhooks/solapi`, 미설정 시 이메일 폴백 (B) CODEF 거래내역 — 동의 기반·민감정보
+  비저장(비식별 요약), 비활성 시 안전 거부 (C) 더존 스마트A·세무사랑Pro 가져오기 — ERP
+  내보내기 파일 파싱→거래처 매핑(기존 일괄 등록 재사용). 관리자 설정(`/settings`)에서 토글 +
+  키 입력(키는 `integration_settings` service-role 전용·화면 비노출, 감사로그엔 키 이름만)
+  · 📄 `docs/integrations.md`
 - ✅ **테스트·배포 파이프라인 + 런치 체크리스트**: 단위(vitest 78)+RLS/권한 통합(pgTAP 66)+
   결제 웹훅/마진/쿼터 + Playwright e2e(가입→온보딩→거래처→일정→대시보드), CI(GitHub Actions:
   lint·typecheck·test·build + pgTAP, PR 게이트), 배포 가이드(`docs/deployment.md`: 환경변수표·

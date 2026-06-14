@@ -36,6 +36,9 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "billing.method_updated": "결제수단 변경",
   "billing.canceled": "구독 취소",
   "billing.resumed": "구독 재개",
+  "integration.updated": "연동 설정 변경",
+  "codef.collect_requested": "CODEF 수집 요청",
+  "erp.imported": "ERP 거래처 가져오기",
 };
 
 export function auditActionLabel(action: string): string {

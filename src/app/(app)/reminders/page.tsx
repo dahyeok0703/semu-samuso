@@ -42,7 +42,7 @@ export default async function RemindersPage() {
     listReminderCandidates(settings.offsets),
     listRecentReminders(80),
   ]);
-  const available = availableChannels();
+  const available = await availableChannels(session.workspace.id);
 
   return (
     <div className="space-y-6">
