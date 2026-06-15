@@ -1,7 +1,25 @@
 # 세무사무소 업무 SaaS (semu-samuso)
 
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/dahyeok0703/semu-samuso)
+
 세무사무소 내부 업무를 관리하는 멀티테넌트 웹 애플리케이션입니다. 거래처·신고·마감·수임을
 한 곳에서 관리하는 것을 목표로 하며, 현재는 인증/멀티테넌시/앱 셸 골격까지 구현되어 있습니다.
+
+## ▶ StackBlitz에서 바로 열기
+
+위 **Open in StackBlitz** 배지를 누르면 브라우저에서 바로 실행됩니다. 또는 GitHub 주소
+앞에 `stackblitz.com/github/` 를 붙이면 됩니다:
+
+```
+https://stackblitz.com/github/dahyeok0703/semu-samuso
+# 특정 브랜치: https://stackblitz.com/github/dahyeok0703/semu-samuso/tree/<branch>
+```
+
+- `.stackblitzrc` 가 `pnpm dev` 로 자동 실행하고, Supabase **데모 placeholder** 환경변수를
+  주입해 부팅 크래시 없이 뜨도록 합니다(`env.ts` 의 필수값 검증 통과).
+- StackBlitz(WebContainer)에는 실제 Supabase/DB가 없으므로 **공개 화면(랜딩 `/`, `/features`,
+  `/pricing`, `/faq`, `/legal/*`)** 이 동작합니다. 로그인·대시보드 등 인증 화면은 실제 Supabase
+  키가 필요하니, 직접 써 보려면 `.env.local` 에 본인 키를 넣고 로컬에서 실행하세요(아래 5분 셋업).
 
 ## 기술 스택
 
