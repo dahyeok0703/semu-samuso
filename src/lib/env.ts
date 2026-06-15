@@ -137,9 +137,25 @@ function parseEnv() {
   const parsed = schema.safeParse(source);
 
   if (!parsed.success) {
-    const message = `❌ Invalid environment variables:\n${formatErrors(parsed.error)}\n\nSee .env.example and README.md for the required configuration.`;
-    // Throwing here surfaces a clear boot-time error instead of a cryptic runtime failure.
-    throw new Error(message);
+    const message = `Invalid environment variables:\n${formatErrors(parsed.error)}\n\nSee .env.example and README.md for the required configuration.`;
+
+    // Production: fail fast — never boot with a broken config.
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(`❌ ${message}`);
+    }
+
+    // Dev / preview (incl. StackBlitz WebContainer): don't crash the server.
+    // Boot with safe demo placeholders so the public app renders; Supabase-backed
+    // features simply won't work until real keys are provided. This keeps
+    // "open in StackBlitz from a GitHub link" working without any setup.
+    console.warn(`⚠️ ${message}\n→ 개발 모드: 데모 placeholder 로 부팅합니다(인증/DB 기능 비활성).`);
+    return schema.parse({
+      ...source,
+      NEXT_PUBLIC_SUPABASE_URL:
+        source.NEXT_PUBLIC_SUPABASE_URL || "https://demo.supabase.co",
+      NEXT_PUBLIC_SUPABASE_ANON_KEY:
+        source.NEXT_PUBLIC_SUPABASE_ANON_KEY || "stackblitz-demo-anon-key",
+    });
   }
 
   return parsed.data;
