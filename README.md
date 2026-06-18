@@ -25,6 +25,35 @@ https://stackblitz.com/github/dahyeok0703/semu-samuso
   `/pricing`, `/faq`, `/legal/*`)** 이 동작합니다. 로그인·대시보드 등 인증 화면은 실제 Supabase
   키가 필요하니, 직접 써 보려면 `.env.local` 에 본인 키를 넣고 로컬에서 실행하세요(아래 5분 셋업).
 
+## 🌐 StackBlitz 말고 다른 곳에서 보기
+
+StackBlitz는 브라우저 안에서 도는 WebContainer라 첫 컴파일이 느립니다. 아래가 더 빠릅니다.
+
+### 1) GitHub Codespaces (추천 — 진짜 클라우드 VM, 키 없이 바로 실행)
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/dahyeok0703/semu-samuso)
+
+저장소 **Code ▾ → Codespaces → Create codespace** 를 눌러도 됩니다. `.devcontainer` 가
+의존성 설치 후 `pnpm dev` 를 자동 실행하고 3000 포트 미리보기를 엽니다(개발 모드라 데모
+placeholder 로 부팅 → 공개 화면 즉시 동작). _이 브랜치에서 보려면_
+`https://codespaces.new/dahyeok0703/semu-samuso?ref=<branch>` 처럼 `ref` 를 붙이세요.
+
+### 2) CodeSandbox (StackBlitz 대안 — Devbox는 VM이라 더 빠름)
+
+```
+https://codesandbox.io/p/github/dahyeok0703/semu-samuso/<branch>
+```
+
+### 3) Vercel 배포 (영구 URL — 항상 즉시 로딩)
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/dahyeok0703/semu-samuso)
+
+- **공개 화면만 데모로** 보고 싶으면 환경변수 `NEXT_PUBLIC_DEMO_MODE=true` 하나만 넣으세요
+  (키 없이 마케팅/법적 페이지가 뜹니다).
+- **실제로 동작**시키려면 `NEXT_PUBLIC_SUPABASE_URL`·`NEXT_PUBLIC_SUPABASE_ANON_KEY`·
+  `SUPABASE_SERVICE_ROLE_KEY`(+선택: `ANTHROPIC_API_KEY`, `PORTONE_*`)를 넣고 마이그레이션을
+  적용하세요(아래 5분 셋업 / `docs/deployment.md`).
+
 ## 기술 스택
 
 - **Next.js 15** (App Router, TypeScript strict)

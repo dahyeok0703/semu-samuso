@@ -139,16 +139,19 @@ function parseEnv() {
   if (!parsed.success) {
     const message = `Invalid environment variables:\n${formatErrors(parsed.error)}\n\nSee .env.example and README.md for the required configuration.`;
 
-    // Production: fail fast — never boot with a broken config.
-    if (process.env.NODE_ENV === "production") {
+    // Production: fail fast — never boot with a broken config. The only exception
+    // is an EXPLICIT demo deploy (NEXT_PUBLIC_DEMO_MODE=true) so a keyless Vercel/
+    // hosted preview can render the public marketing pages.
+    const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+    if (process.env.NODE_ENV === "production" && !demoMode) {
       throw new Error(`❌ ${message}`);
     }
 
-    // Dev / preview (incl. StackBlitz WebContainer): don't crash the server.
-    // Boot with safe demo placeholders so the public app renders; Supabase-backed
-    // features simply won't work until real keys are provided. This keeps
-    // "open in StackBlitz from a GitHub link" working without any setup.
-    console.warn(`⚠️ ${message}\n→ 개발 모드: 데모 placeholder 로 부팅합니다(인증/DB 기능 비활성).`);
+    // Dev / preview / demo: don't crash. Boot with safe demo placeholders so the
+    // public app renders; Supabase-backed features stay disabled until real keys
+    // are provided. Keeps "open from a GitHub link" (StackBlitz/Codespaces) and a
+    // keyless demo deploy working without any setup.
+    console.warn(`⚠️ ${message}\n→ 데모 모드: placeholder 로 부팅합니다(인증/DB 기능 비활성).`);
     return schema.parse({
       ...source,
       NEXT_PUBLIC_SUPABASE_URL:

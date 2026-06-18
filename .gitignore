@@ -41,3 +41,7 @@ yarn-error.log*
 .vscode/*
 !.vscode/extensions.json
 .idea
+
+# backup env files (never commit)
+.env*.bak
+.env.*.bak
